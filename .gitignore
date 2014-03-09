@@ -1,1 +1,3 @@
-Avalanche/bin/Debug/Avalanche.vshost.exe
+**/bin
+**/obj
+**.suo
