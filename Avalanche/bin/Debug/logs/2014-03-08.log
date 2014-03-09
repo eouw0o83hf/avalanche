@@ -1,0 +1,56 @@
+2014-03-08 20:09:10,827 [8] INFO  Avalanche.Program [(null)] - Backing up 0 images
+2014-03-08 20:09:10,870 [8] INFO  Avalanche.Program [(null)] - Done
+2014-03-08 20:09:24,579 [10] INFO  Avalanche.Program [(null)] - Backing up 0 images
+2014-03-08 20:09:24,622 [10] INFO  Avalanche.Program [(null)] - Done
+2014-03-08 20:09:42,479 [8] INFO  Avalanche.Program [(null)] - Backing up 0 images
+2014-03-08 20:09:42,523 [8] INFO  Avalanche.Program [(null)] - Done
+2014-03-08 20:10:07,134 [8] INFO  Avalanche.Program [(null)] - Backing up 0 images
+2014-03-08 20:10:07,177 [8] INFO  Avalanche.Program [(null)] - Done
+2014-03-08 20:10:23,062 [8] INFO  Avalanche.Program [(null)] - Backing up 0 images
+2014-03-08 20:10:23,106 [8] INFO  Avalanche.Program [(null)] - Done
+2014-03-08 20:11:34,180 [8] INFO  Avalanche.Program [(null)] - Backing up 0 images
+2014-03-08 20:11:34,222 [8] INFO  Avalanche.Program [(null)] - Done
+2014-03-08 20:11:56,512 [8] INFO  Avalanche.Program [(null)] - Backing up 0 images
+2014-03-08 20:11:56,555 [8] INFO  Avalanche.Program [(null)] - Done
+2014-03-08 20:31:10,204 [10] INFO  Avalanche.Program [(null)] - Backing up 0 images
+2014-03-08 20:31:10,247 [10] INFO  Avalanche.Program [(null)] - Done
+2014-03-08 20:38:00,323 [9] INFO  Avalanche.Program [(null)] - Backing up 0 images
+2014-03-08 20:38:00,367 [9] INFO  Avalanche.Program [(null)] - Done
+2014-03-08 20:39:07,690 [9] INFO  Avalanche.Program [(null)] - Backing up 1270 images
+2014-03-08 20:39:07,733 [9] INFO  Avalanche.Program [(null)] - Archiving 1/1270: D:/Pictures/Canon PowerShot A590IS/2009-08-12 (Honeymoon)/IMG_0696.JPG
+2014-03-08 20:39:08,703 [9] INFO  Avalanche.Program [(null)] - Compressed IMG_0696.JPG from 3140884 to 3152413, removing -0.37%
+2014-03-08 20:39:08,793 [9] INFO  Avalanche.Program [(null)] - Uploading D:/Pictures/Canon PowerShot A590IS/2009-08-12 (Honeymoon)/IMG_0696.JPG, 3152413 bytes
+2014-03-08 20:39:14,583 [9] INFO  Avalanche.Program [(null)] - File uploaded: Created, archive ID: o-Ncfmn5-LiGadZ_jlMVuN1tDp-YfMbePUMv2Qo5JJEmaGq4VNcUvHWSXeuLabmYh0X9O1UkSM7a6jN-NfpeXxevviNVpUEe4690IadROayTCfEAEnx0plTIC3hrInCouNqH7HrhCQ
+2014-03-08 20:39:23,288 [9] INFO  Avalanche.Program [(null)] - Archiving 2/1270: D:/Pictures/Canon PowerShot A590IS/2009-08-12 (Honeymoon)/IMG_0696.JPG
+2014-03-08 20:39:23,820 [9] INFO  Avalanche.Program [(null)] - Compressed IMG_0696.JPG from 3140884 to 3152412, removing -0.37%
+2014-03-08 20:39:23,824 [9] INFO  Avalanche.Program [(null)] - Uploading D:/Pictures/Canon PowerShot A590IS/2009-08-12 (Honeymoon)/IMG_0696.JPG, 3152412 bytes
+2014-03-08 20:39:29,658 [9] INFO  Avalanche.Program [(null)] - File uploaded: Created, archive ID: XU-_NEk0XKnQ04GxOGc3mSZEHb9EUl1qyIzpmAv_bpqAQOBX8dYJ-QfwRQVo5JtgzgtmehNioDt00LZDVc4HRzUAjt0h7TgfdvCoAapoSAPhb4vFs8kBbil1VItG1J8B7J9EyBSWqQ
+2014-03-08 20:39:29,777 [9] INFO  Avalanche.Program [(null)] - Archiving 3/1270: D:/Pictures/Canon PowerShot A590IS/2009-08-12 (Honeymoon)/IMG_0700.JPG
+2014-03-08 20:39:30,281 [9] INFO  Avalanche.Program [(null)] - Compressed IMG_0700.JPG from 2358352 to 2367073, removing -0.37%
+2014-03-08 20:39:30,285 [9] INFO  Avalanche.Program [(null)] - Uploading D:/Pictures/Canon PowerShot A590IS/2009-08-12 (Honeymoon)/IMG_0700.JPG, 2367073 bytes
+2014-03-08 20:39:35,114 [9] INFO  Avalanche.Program [(null)] - File uploaded: Created, archive ID: of3GtFF9hn1QvzkzksltdyHcZK_Y7gSMCyywTGRLVVLJAwIqNJZsWV6RWdA_br-Y9WZA9ZC0Cg1R6GACDLDb_PUbyBvRhYsOFHeHch07CTVSk3VRC5esZWtxdka77IyWKY8V2MSP4g
+2014-03-08 20:50:15,541 [9] DEBUG Avalanche.Program [(null)] - US East (Virginia) (us-east-1)
+2014-03-08 20:50:15,580 [9] DEBUG Avalanche.Program [(null)] - US West (N. California) (us-west-1)
+2014-03-08 20:50:15,584 [9] DEBUG Avalanche.Program [(null)] - US West (Oregon) (us-west-2)
+2014-03-08 20:50:15,588 [9] DEBUG Avalanche.Program [(null)] - EU West (Ireland) (eu-west-1)
+2014-03-08 20:50:15,591 [9] DEBUG Avalanche.Program [(null)] - Asia Pacific (Tokyo) (ap-northeast-1)
+2014-03-08 20:50:15,594 [9] DEBUG Avalanche.Program [(null)] - Asia Pacific (Singapore) (ap-southeast-1)
+2014-03-08 20:50:15,597 [9] DEBUG Avalanche.Program [(null)] - Asia Pacific (Sydney) (ap-southeast-2)
+2014-03-08 20:50:15,601 [9] DEBUG Avalanche.Program [(null)] - South America (Sao Paulo) (sa-east-1)
+2014-03-08 20:50:15,605 [9] DEBUG Avalanche.Program [(null)] - US GovCloud West (Oregon) (us-gov-west-1)
+2014-03-08 20:50:15,607 [9] DEBUG Avalanche.Program [(null)] - China (Beijing) (cn-north-1)
+2014-03-08 20:50:57,524 [9] DEBUG Avalanche.Program [(null)] - string US East (Virginia) (us-east-1), display US East (Virginia), system us-east-1
+2014-03-08 20:50:57,567 [9] DEBUG Avalanche.Program [(null)] - string US West (N. California) (us-west-1), display US West (N. California), system us-west-1
+2014-03-08 20:50:57,570 [9] DEBUG Avalanche.Program [(null)] - string US West (Oregon) (us-west-2), display US West (Oregon), system us-west-2
+2014-03-08 20:50:57,573 [9] DEBUG Avalanche.Program [(null)] - string EU West (Ireland) (eu-west-1), display EU West (Ireland), system eu-west-1
+2014-03-08 20:50:57,576 [9] DEBUG Avalanche.Program [(null)] - string Asia Pacific (Tokyo) (ap-northeast-1), display Asia Pacific (Tokyo), system ap-northeast-1
+2014-03-08 20:50:57,579 [9] DEBUG Avalanche.Program [(null)] - string Asia Pacific (Singapore) (ap-southeast-1), display Asia Pacific (Singapore), system ap-southeast-1
+2014-03-08 20:50:57,582 [9] DEBUG Avalanche.Program [(null)] - string Asia Pacific (Sydney) (ap-southeast-2), display Asia Pacific (Sydney), system ap-southeast-2
+2014-03-08 20:50:57,584 [9] DEBUG Avalanche.Program [(null)] - string South America (Sao Paulo) (sa-east-1), display South America (Sao Paulo), system sa-east-1
+2014-03-08 20:50:57,587 [9] DEBUG Avalanche.Program [(null)] - string US GovCloud West (Oregon) (us-gov-west-1), display US GovCloud West (Oregon), system us-gov-west-1
+2014-03-08 20:50:57,590 [9] DEBUG Avalanche.Program [(null)] - string China (Beijing) (cn-north-1), display China (Beijing), system cn-north-1
+2014-03-08 20:53:33,905 [10] INFO  Avalanche.Program [(null)] - Backing up 1267 images
+2014-03-08 20:53:36,485 [10] INFO  Avalanche.Program [(null)] - Archiving 1/1267: D:/Pictures/Canon PowerShot A590IS/2009-08-12 (Honeymoon)/IMG_0705.JPG
+2014-03-08 20:53:37,388 [10] INFO  Avalanche.Program [(null)] - Compressed IMG_0705.JPG from 3318477 to 3339340, removing -0.63%
+2014-03-08 20:53:37,466 [10] INFO  Avalanche.Program [(null)] - Uploading D:/Pictures/Canon PowerShot A590IS/2009-08-12 (Honeymoon)/IMG_0705.JPG, 3339340 bytes
+2014-03-08 20:53:44,040 [10] INFO  Avalanche.Program [(null)] - File uploaded: Created, archive ID: Ufl4Eajq1mhtSF7tf5GE_E2fWrTE-XUARlWK8B4oSMu9U3-TmPWFZFO2-HmoE9LK0si_C14N-KJMXS3TSasFQFb0f-TAmwGFfJm7nqr-REX0KuoXzoAmCkNp6JrYLFHjU_YvV5JFsw
