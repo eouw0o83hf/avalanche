@@ -1,8 +1,10 @@
 ﻿using Amazon;
 using log4net;
 using Mono.Options;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,26 +20,29 @@ namespace Avalanche
 
         public string ConfigFileLocation { get; set; }
 
-        public static ExecutionParameters Initialize(string[] args)
+        public void Initialize(string[] args)
         {
-            var context = new ExecutionParameters
+            if(Glacier == null)
             {
-                Glacier = new GlacierParameters(),
-                Avalanche = new AvalancheParameters()
-            };
+                Glacier = new GlacierParameters();
+            }
+            if (Avalanche == null)
+            {
+                Avalanche = new AvalancheParameters();
+            }
 
             var showHelp = false;
             var options = new OptionSet
             {
-                { "gk|glacier-key", "Access Key ID for Amazon Glacier", a => context.Glacier.AccessKeyId = a },
-                { "gs|glacier-secret", "Secret Access Key for Amazon Glacier", a => context.Glacier.SecretAccessKey = a },
-                { "ga|glacier-account", "Account ID for Amazon Glacier", a => context.Glacier.AccountId = a },
-                { "gsns|glacier-sns-topic", "SNS Topic ID for Amazon Glacier Job", a => context.Glacier.SnsTopicId = a },
-                { "gv|glacier-vault", "Vault name for Amazon Glacier", a => context.Glacier.VaultName = a },
-                { "gr|glacier-region", "Region for Glacier. Options are {APNortheast1, APSoutheast1, APSoutheast2, CNNorth1, EUWest1, SAEast1, USEast1, USGovCloudWest1, USWest1, USWest2}", a => context.Glacier.Region = a },
-                { "lc|lightroom-catalog", "Path/File for Lightroom Catalog", a => context.Avalanche.CatalongFilePath = a },
-                { "ad|avalanche-db", "Path/File for Avalanche DB", a => context.Avalanche.AvalancheFilePath = a },
-                { "c|config-file", "Path/File for Avalanche Config File", a => context.ConfigFileLocation = a },
+                { "gk|glacier-key", "Access Key ID for Amazon Glacier", a => Glacier.AccessKeyId = a },
+                { "gs|glacier-secret", "Secret Access Key for Amazon Glacier", a => Glacier.SecretAccessKey = a },
+                { "ga|glacier-account", "Account ID for Amazon Glacier", a => Glacier.AccountId = a },
+                { "gsns|glacier-sns-topic", "SNS Topic ID for Amazon Glacier Job", a => Glacier.SnsTopicId = a },
+                { "gv|glacier-vault", "Vault name for Amazon Glacier", a => Glacier.VaultName = a },
+                { "gr|glacier-region", "Region for Glacier. Options are {APNortheast1, APSoutheast1, APSoutheast2, CNNorth1, EUWest1, SAEast1, USEast1, USGovCloudWest1, USWest1, USWest2}", a => Glacier.Region = a },
+                { "lc|lightroom-catalog", "Path/File for Lightroom Catalog", a => Avalanche.CatalongFilePath = a },
+                { "ad|avalanche-db", "Path/File for Avalanche DB", a => Avalanche.AvalancheFilePath = a },
+                { "c|config-file", "Path/File for Avalanche Config File", a => ConfigFileLocation = a },
                 { "h|help", "Help", a => showHelp = a != null }
             };
 
@@ -51,17 +56,49 @@ namespace Avalanche
                     {
                         _log.Error(e);
                     }
-                    return null;
+                    Environment.Exit(0);
                 }
             }
             catch (OptionException ex)
             {
                 _log.Error("Error with arguments: (If you need a list, use -h for help)");
                 _log.Error(ex.Message);
-                return null;
+                Environment.Exit(0);
+            }
+        }
+
+        public static ExecutionParameters GetParametersFromArgs(string[] args)
+        {
+            ExecutionParameters parameters = null;
+
+            // Load from disk if possible
+            var myDocuments = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            var defaultPath = Path.Combine(myDocuments, "avalanche.json");
+            if (File.Exists(defaultPath))
+            {
+                parameters = JsonConvert.DeserializeObject<ExecutionParameters>(File.ReadAllText(defaultPath));
             }
 
-            return context;
+            if (parameters == null)
+            {
+                parameters = new ExecutionParameters();
+            }
+
+            parameters.Initialize(args);
+            if (parameters.ConfigFileLocation != null)
+            {
+                if (!File.Exists(parameters.ConfigFileLocation))
+                {
+                    _log.FatalFormat("Couldn't find config file specified at location {0}", parameters.ConfigFileLocation);
+                    Environment.Exit(0);
+                }
+
+                // Ah crap, a different file was specified. Load it instead.
+                parameters = JsonConvert.DeserializeObject<ExecutionParameters>(File.ReadAllText(parameters.ConfigFileLocation));
+                parameters.Initialize(args);
+            }
+
+            return parameters;
         }
     }
 

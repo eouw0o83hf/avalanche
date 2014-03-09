@@ -24,10 +24,10 @@ namespace Avalanche
     public class Program
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof(Program));
-        
+
         public static void Main(string[] args)
         {
-            var parameters = GetParameters(args);
+            var parameters = ExecutionParameters.GetParametersFromArgs(args);
             if (parameters == null)
             {
                 _log.Fatal("No config file could be found in the default location (my documents) and none was specified in the parameters.");
@@ -78,31 +78,6 @@ namespace Avalanche
                 _log.Info("Done");
                 Console.Read();
             }
-        }
-
-        static ExecutionParameters GetParameters(string[] args)
-        {
-            var parameters = ExecutionParameters.Initialize(args);
-
-            if (args == null || args.Length == 0)
-            {
-                var myDocuments = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-                var defaultPath = Path.Combine(myDocuments, "avalanche.json");
-                if (File.Exists(defaultPath))
-                {
-                    parameters = JsonConvert.DeserializeObject<ExecutionParameters>(File.ReadAllText(defaultPath));
-                }
-            }
-            else if (parameters.ConfigFileLocation != null)
-            {
-                if (!File.Exists(parameters.ConfigFileLocation))
-                {
-                    _log.FatalFormat("Couldn't find config file specified at location {0}", parameters.ConfigFileLocation);
-                }
-                parameters = JsonConvert.DeserializeObject<ExecutionParameters>(File.ReadAllText(parameters.ConfigFileLocation));
-            }
-
-            return parameters;
         }
     }
 }
