@@ -34,6 +34,17 @@ namespace Avalanche
                 Environment.Exit(0);
             }
 
+            var errors = parameters.GetValidationErrors();
+            if (errors.Any())
+            {
+                _log.Fatal("Configuration/parameter errors occurredt:");
+                foreach (var e in errors)
+                {
+                    _log.Fatal(e);
+                }
+                Environment.Exit(0);
+            }
+
             using (var insomniac = new Insomniac())
             {
                 var lightroomRepo = new LightroomRepository(parameters.Avalanche.CatalongFilePath);

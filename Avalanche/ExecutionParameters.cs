@@ -100,6 +100,11 @@ namespace Avalanche
 
             return parameters;
         }
+
+        public ICollection<string> GetValidationErrors()
+        {
+            return Glacier.GetValidationErrors().Union(Avalanche.GetValidationErrors()).ToList();
+        }
     }
 
     public class GlacierParameters
@@ -124,11 +129,54 @@ namespace Avalanche
             }
             return null;
         }
+
+        public IEnumerable<string> GetValidationErrors()
+        {
+            if (string.IsNullOrWhiteSpace(AccessKeyId))
+            {
+                yield return "Glacier Access Key ID is required.";
+            }
+            if (string.IsNullOrWhiteSpace(SecretAccessKey))
+            {
+                yield return "Glacier Secret Access Key is required.";
+            }
+
+            if (string.IsNullOrWhiteSpace(Region))
+            {
+                yield return "Glacier Region is required.";
+            }
+            else if (GetRegion() == null)
+            {
+                yield return "Could not parse given Glacier Region " + GetRegion();
+            }
+
+            if (string.IsNullOrWhiteSpace(VaultName))
+            {
+                yield return "Glacier Vault Name is required.";
+            }
+        }
     }
 
     public class AvalancheParameters
     {
         public string CatalongFilePath { get; set; }
         public string AvalancheFilePath { get; set; }
+
+        public IEnumerable<string> GetValidationErrors()
+        {
+            if (string.IsNullOrWhiteSpace(CatalongFilePath))
+            {
+                yield return "Lightroom Catalog file path is required";
+            }
+            else if (!File.Exists(CatalongFilePath))
+            {
+                yield return "Could not find a Lightroom Catalog file at path " + CatalongFilePath;
+            }
+
+            if (string.IsNullOrWhiteSpace(AvalancheFilePath))
+            {
+                yield return "Avalanch File path is required";
+            }
+        }
     }
 }
