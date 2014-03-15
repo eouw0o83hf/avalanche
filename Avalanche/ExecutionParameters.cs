@@ -69,6 +69,7 @@ namespace Avalanche
             if (showHelp)
             {
                 options.WriteOptionDescriptions(Console.Error);
+                Environment.Exit(0);
             }
         }
 
