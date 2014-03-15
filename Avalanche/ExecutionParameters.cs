@@ -40,9 +40,9 @@ namespace Avalanche
                 { "gt=|glacier-sns-topic=", "SNS Topic ID for Amazon Glacier Job", a => Glacier.SnsTopicId = a },
                 { "gv=|glacier-vault=", "Vault name for Amazon Glacier", a => Glacier.VaultName = a },
                 { "gr=|glacier-region=", "Region for Glacier. Options are {APNortheast1, APSoutheast1, APSoutheast2, CNNorth1, EUWest1, SAEast1, USEast1, USGovCloudWest1, USWest1, USWest2}", a => Glacier.Region = a },
-                { "lc=|lightroom-catalog=", "Path/File for Lightroom Catalog", a => Avalanche.CatalongFilePath = a },
-                { "ad=|avalanche-db=", "Path/File for Avalanche DB", a => Avalanche.AvalancheFilePath = a },
-                { "c=|config-file=", "Path/File for Avalanche Config File", a => ConfigFileLocation = a },
+                { "lc=|lightroom-catalog=", "Path/File for Lightroom Catalog", a => Avalanche.CatalongFilePath = a.Trim('"') },
+                { "ad=|avalanche-db=", "Path/File for Avalanche DB", a => Avalanche.AvalancheFilePath = a.Trim('"') },
+                { "c=|config-file=", "Path/File for Avalanche Config File", a => ConfigFileLocation = a.Trim('"') },
                 { "h|help", "Help", a => showHelp = a != null }
             };
 
