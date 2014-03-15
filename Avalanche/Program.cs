@@ -87,7 +87,6 @@ namespace Avalanche
                 }
 
                 _log.Info("Done");
-                Console.Read();
             }
         }
     }
