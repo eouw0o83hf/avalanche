@@ -94,15 +94,19 @@ GROUP BY
             var relativeRoot = record["PathFromCatalog"] as string;
             var absoluteRoot = record["AbsolutePath"] as string;
             var libraryPath = record["PathFromLibraryRoot"] as string;
+            var fileName = record["Filename"] as string;
+            var imageId = record["ImageId"] as string;
+            var fileId = record["FileId"] as string;
+            var collectionCount = Convert.ToInt32(record["CollectionCount"]);
 
             return new PictureModel
             {
                 AbsolutePath = Path.Combine(absoluteRoot, libraryPath),
                 CatalogRelativePath = relativeRoot == null ? "NULL" : Path.Combine(relativeRoot, libraryPath),
-                FileName = record.GetString(3),
-                ImageId = record.GetGuid(5),
-                FileId = record.GetGuid(6),
-                LibraryCount = record.GetInt32(4)
+                FileName = fileName,
+                ImageId = Guid.Parse(imageId),
+                FileId = Guid.Parse(fileId),
+                LibraryCount = collectionCount
             };
         }
     }

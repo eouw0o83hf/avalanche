@@ -86,6 +86,9 @@ namespace Avalanche
                     avalancheRepo.MarkFileAsArchived(archive, parameters.Glacier.VaultName, parameters.Glacier.Region, parameters.Avalanche.CatalongFilePath, catalogId.ToString());
                 }
 
+                var missing = allPictures.Where(p => !File.Exists(Path.Combine(p.AbsolutePath, p.FileName))).ToList();
+                _log.InfoFormat("Downloading {0} missing files...", missing.Count);
+                
                 _log.Info("Done");
             }
         }
