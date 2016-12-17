@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Avalanche.Models
 {
@@ -16,5 +12,6 @@ namespace Avalanche.Models
         public Guid ImageId { get; set; }
 
         public int LibraryCount { get; set; }
+        public string CopyName { get; set; }
     }
 }

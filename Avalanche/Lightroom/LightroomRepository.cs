@@ -60,6 +60,7 @@ SELECT
 	f.idx_filename AS 'Filename',    
 	SUM(CASE WHEN i.id_local IS NOT NULL THEN 1 ELSE 0 END) AS 'CollectionCount',
 	m.id_global AS 'ImageId',
+    m.copyName AS 'CopyName',
 	f.id_global AS 'FileId'
 FROM
 	AgLibraryFile f
@@ -96,6 +97,7 @@ GROUP BY
             var libraryPath = record["PathFromLibraryRoot"] as string;
             var fileName = record["Filename"] as string;
             var imageId = record["ImageId"] as string;
+            var copyName = record["CopyName"] as string;
             var fileId = record["FileId"] as string;
             var collectionCount = Convert.ToInt32(record["CollectionCount"]);
 
@@ -105,9 +107,23 @@ GROUP BY
                 CatalogRelativePath = relativeRoot == null ? "NULL" : Path.Combine(relativeRoot, libraryPath),
                 FileName = fileName,
                 ImageId = Guid.Parse(imageId),
+                CopyName = copyName,
                 FileId = Guid.Parse(fileId),
                 LibraryCount = collectionCount
             };
+        }
+
+        public int MarkAsArchived(ArchiveModel archive, PictureModel pictureModel)
+        {
+            using (var connection = OpenNewConnection())
+            {
+                var command = connection.CreateCommand();
+                command.CommandText = $"UPDATE Adobe_images SET copyName = '{archive.ArchiveId}' where id_global = '{pictureModel.ImageId}'";
+
+                var result = command.ExecuteNonQuery();
+                connection.Close();
+                return result;
+            }
         }
     }
 }

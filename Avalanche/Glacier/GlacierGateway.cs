@@ -24,6 +24,7 @@ namespace Avalanche.Glacier
         protected readonly string _secretAccessKey;
         protected readonly string _accountId;
         protected readonly RegionEndpoint _region;
+        protected readonly string _vaultName;
 
         public GlacierGateway(GlacierParameters parameters)
         {
@@ -31,11 +32,16 @@ namespace Avalanche.Glacier
             _secretAccessKey = parameters.SecretAccessKey;
             _accountId = parameters.AccountId ?? "-";
             _region = parameters.GetRegion();
+            _vaultName = parameters.VaultName;
         }
 
         protected IAmazonGlacier GetGlacierClient()
         {
             return new AmazonGlacierClient(_accessKeyId, _secretAccessKey, _region);
+        }
+        protected ArchiveTransferManager GetGlacierTransferManager()
+        {
+            return new ArchiveTransferManager(_accessKeyId, _secretAccessKey, _region);
         }
 
         #region Vaults
@@ -93,59 +99,34 @@ namespace Avalanche.Glacier
 
         #region Save
 
-        public ArchivedPictureModel SaveImage(PictureModel picture, string vaultName = "Pictures", bool compress = true)
+        public Task<UploadResult> SaveImage(PictureModel picture, string vaultName = null, bool compress = true)
         {
-            var archive = SaveFile(Path.Combine(picture.AbsolutePath, picture.FileName), picture, vaultName, compress);
-            return new ArchivedPictureModel
-            {
-                Archive = archive,
-                Picture = picture
-            };
+            return SaveFile(Path.Combine(picture.AbsolutePath, picture.FileName), picture, string.IsNullOrEmpty(vaultName) ? _vaultName : vaultName, compress);
         }
 
-        public ArchiveModel SaveFile(string filename, object metadata, string vaultName, bool compress)
+        public Task<UploadResult> SaveFile(string filename, object metadata, string vaultName, bool compress)
         {
             var json = JsonConvert.SerializeObject(metadata);
 
-            using (var fileStream = GetFileStream(filename, compress, json))
-            using (var client = GetGlacierClient())
+            using (var client = GetGlacierTransferManager())
             {
-                _log.InfoFormat("Uploading {0}, {1} bytes", filename, fileStream.Length);
+                var fi = new FileInfo(filename);
+                _log.InfoFormat("Uploading {0}, {1} bytes", filename, fi.Length);
 
-                var hash = TreeHashGenerator.CalculateTreeHash(fileStream);
-                fileStream.Position = 0;
-
-                UploadArchiveResponse result;
                 using (var percentUpdater = new ConsolePercentUpdater())
                 {
                     percentUpdater.Start();
-
-                    result = client.UploadArchive(new UploadArchiveRequest
+                    var vault = GetTrimmedVaultName(vaultName);
+                    var options = new UploadOptions()
                     {
                         AccountId = _accountId,
-                        ArchiveDescription = json,
-                        VaultName = GetTrimmedVaultName(vaultName),
-                        Body = fileStream,
-                        Checksum = hash,
-                        StreamTransferProgress = new EventHandler<StreamTransferProgressArgs>((a, b) =>
-                            {
-                                percentUpdater.PercentDone = b.PercentDone;
-                            })
-                    });
-                }
-
-                _log.InfoFormat("File uploaded: {0}, archive ID: {1}", result.HttpStatusCode, result.ArchiveId);
-
-                var response = new ArchiveModel
-                {
-                    ArchiveId = result.ArchiveId,
-                    Status = result.HttpStatusCode,
-                    Location = result.Location,
-                    Metadata = JsonConvert.SerializeObject(result.ResponseMetadata),
-                    PostedTimestamp = DateTime.UtcNow
-                };
-
-                return response;
+                        StreamTransferProgress = (sender, args) =>
+                        {
+                            percentUpdater.PercentDone = args.PercentDone;
+                        }
+                    };
+                    return client.UploadAsync(vault, json, filename, options);
+                }                
             }
         }
 
@@ -174,7 +155,7 @@ namespace Avalanche.Glacier
             compressions[metadataFilename] = metadataStream;
             
             // Setup the compressor
-            SevenZipCompressor.SetLibraryPath(@"C:\Program Files\7-Zip\7z.dll");
+            SevenZipBase.SetLibraryPath(@"C:\Program Files\7-Zip\7z.dll");
             var compressor = new SevenZipCompressor
             {
                 ArchiveFormat = OutArchiveFormat.SevenZip,
