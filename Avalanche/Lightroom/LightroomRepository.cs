@@ -118,9 +118,9 @@ GROUP BY
             using (var connection = OpenNewConnection())
             {
                 var command = connection.CreateCommand();
-                command.CommandText = $"UPDATE Adobe_images SET copyName = '{archive.ArchiveId}' where id_global = '{pictureModel.ImageId}'";
+                command.CommandText = $"UPDATE Adobe_images SET copyName = '{archive.ArchiveId}' where id_global = '{pictureModel.ImageId.ToString().ToUpperInvariant()}'";
 
-                var result = command.ExecuteNonQuery();
+                var result = command.ExecuteNonQuery();            
                 connection.Close();
                 return result;
             }

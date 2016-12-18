@@ -25,6 +25,8 @@ namespace Avalanche.Glacier
         protected readonly string _accountId;
         protected readonly RegionEndpoint _region;
         protected readonly string _vaultName;
+        private readonly AmazonGlacierClient _glacierClient;
+        private readonly ArchiveTransferManager _transferManager;
 
         public GlacierGateway(GlacierParameters parameters)
         {
@@ -33,15 +35,8 @@ namespace Avalanche.Glacier
             _accountId = parameters.AccountId ?? "-";
             _region = parameters.GetRegion();
             _vaultName = parameters.VaultName;
-        }
-
-        protected IAmazonGlacier GetGlacierClient()
-        {
-            return new AmazonGlacierClient(_accessKeyId, _secretAccessKey, _region);
-        }
-        protected ArchiveTransferManager GetGlacierTransferManager()
-        {
-            return new ArchiveTransferManager(_accessKeyId, _secretAccessKey, _region);
+            _glacierClient = new AmazonGlacierClient(_accessKeyId, _secretAccessKey, _region);
+            _transferManager = new ArchiveTransferManager(_accessKeyId, _secretAccessKey, _region);
         }
 
         #region Vaults
@@ -58,30 +53,26 @@ namespace Avalanche.Glacier
             }
 
             _log.InfoFormat("Creating vault {0}", vaultName);
-            using (var client = GetGlacierClient())
+
+            var result = _glacierClient.CreateVault(new CreateVaultRequest
             {
-                var result = client.CreateVault(new CreateVaultRequest
-                {
-                    AccountId = _accountId,
-                    VaultName = vaultName
-                });
-                _log.DebugFormat("Vault creation result: {0}", result.HttpStatusCode);
-            }
+                AccountId = _accountId,
+                VaultName = vaultName
+            });
+            _log.DebugFormat("Vault creation result: {0}", result.HttpStatusCode);
+
         }
 
         protected bool VaultExists(string vaultName)
         {
             vaultName = GetTrimmedVaultName(vaultName);
 
-            using (var client = GetGlacierClient())
+            var response = _glacierClient.ListVaults(new ListVaultsRequest
             {
-                var response = client.ListVaults(new ListVaultsRequest
-                {
-                    AccountId = _accountId
-                });
+                AccountId = _accountId
+            });
 
-                return response.VaultList.Any(a => a.VaultName.Equals(vaultName));
-            }
+            return response.VaultList.Any(a => a.VaultName.Equals(vaultName));
         }
 
         protected string GetTrimmedVaultName(string vaultName)
@@ -99,35 +90,32 @@ namespace Avalanche.Glacier
 
         #region Save
 
-        public Task<UploadResult> SaveImage(PictureModel picture, string vaultName = null, bool compress = true)
+        public Task<UploadResult> SaveImageAsync(PictureModel picture, string vaultName = null, bool compress = true)
         {
-            return SaveFile(Path.Combine(picture.AbsolutePath, picture.FileName), picture, string.IsNullOrEmpty(vaultName) ? _vaultName : vaultName, compress);
+            return SaveFileAsync(Path.Combine(picture.AbsolutePath, picture.FileName), picture, string.IsNullOrEmpty(vaultName) ? _vaultName : vaultName, compress);
         }
 
-        public Task<UploadResult> SaveFile(string filename, object metadata, string vaultName, bool compress)
+        public Task<UploadResult> SaveFileAsync(string filename, object metadata, string vaultName, bool compress)
         {
             var json = JsonConvert.SerializeObject(metadata);
 
-            using (var client = GetGlacierTransferManager())
-            {
-                var fi = new FileInfo(filename);
-                _log.InfoFormat("Uploading {0}, {1} bytes", filename, fi.Length);
+            var fi = new FileInfo(filename);
+            var shortFile = Path.GetFileName(filename);
 
-                using (var percentUpdater = new ConsolePercentUpdater())
+            _log.InfoFormat("Uploading {0}, {1} bytes", filename, fi.Length);
+
+            var vault = GetTrimmedVaultName(vaultName);
+            var options = new UploadOptions()
+            {
+                AccountId = _accountId,
+                StreamTransferProgress = (sender, args) =>
                 {
-                    percentUpdater.Start();
-                    var vault = GetTrimmedVaultName(vaultName);
-                    var options = new UploadOptions()
-                    {
-                        AccountId = _accountId,
-                        StreamTransferProgress = (sender, args) =>
-                        {
-                            percentUpdater.PercentDone = args.PercentDone;
-                        }
-                    };
-                    return client.UploadAsync(vault, json, filename, options);
-                }                
-            }
+                    
+                    Console.WriteLine($"{shortFile}:{args.PercentDone}%");
+                }
+            };
+            return _transferManager.UploadAsync(vault, json, filename, options);
+
         }
 
         protected Stream GetFileStream(string filename, bool compress, string metadata, string metadataFilename = "metadata.txt")
@@ -180,36 +168,31 @@ namespace Avalanche.Glacier
         public void BeginVaultInventoryRetrieval(string vaultName, string notificationTargetTopicId)
         {
             vaultName = GetTrimmedVaultName(vaultName);
-            using (var client = GetGlacierClient())
+
+            var response = _glacierClient.InitiateJob(new InitiateJobRequest
             {
-                var response = client.InitiateJob(new InitiateJobRequest
+                VaultName = vaultName,
+                JobParameters = new JobParameters
                 {
-                    VaultName = vaultName,
-                    JobParameters = new JobParameters
-                    {
-                        Type = "inventory-retrieval",
-                        SNSTopic = notificationTargetTopicId
-                    }
-                });
-                _log.DebugFormat("Job ID: {0}", response.JobId);
-            }
+                    Type = "inventory-retrieval",
+                    SNSTopic = notificationTargetTopicId
+                }
+            });
+            _log.DebugFormat("Job ID: {0}", response.JobId);
         }
 
         public void PickupVaultInventoryRetrieval(string vaultName, string jobId, string outputFileName)
         {
-            using(var client = GetGlacierClient())
+            var result = _glacierClient.GetJobOutput(new GetJobOutputRequest
             {
-                var result = client.GetJobOutput(new GetJobOutputRequest
-                {
-                    AccountId = _accountId,
-                    JobId = jobId,
-                    VaultName = vaultName
-                });
+                AccountId = _accountId,
+                JobId = jobId,
+                VaultName = vaultName
+            });
 
-                using (var file = File.OpenWrite(outputFileName))
-                {
-                    result.Body.CopyTo(file);
-                }
+            using (var file = File.OpenWrite(outputFileName))
+            {
+                result.Body.CopyTo(file);
             }
         }
 

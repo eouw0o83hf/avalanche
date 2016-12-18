@@ -41,11 +41,12 @@ namespace Avalanche
             var lightroomRepository = new LightroomRepository(parameters.Avalanche.CatalongFilePath);
             var glacierGateway = new GlacierGateway(parameters.Glacier);
             var allPictures = lightroomRepository.GetAllPictures();
+            var toUpload = allPictures.Where(a => a.LibraryCount > 0 && string.IsNullOrWhiteSpace(a.CopyName)).ToList();
 
             using (var insomniac = new Insomniac())
             {
                 var uploader = new GlacierUploader(lightroomRepository, glacierGateway);
-                uploader.RunUploader(allPictures);
+                uploader.RunUploader(toUpload);
             }
 
             var missing = allPictures.Where(p => !File.Exists(Path.Combine(p.AbsolutePath, p.FileName))).ToList();

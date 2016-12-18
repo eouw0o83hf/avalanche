@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Amazon.Glacier.Transfer;
 using Avalanche.Glacier;
@@ -32,32 +31,38 @@ namespace Avalanche
             _glacierGateway = glacierGateway;
         }
 
-        public void RunUploader(ICollection<PictureModel> allPictures)
+        public void RunUploader(ICollection<PictureModel> pictures)
         {
-            var catalogId = _lightroomRepository.GetUniqueId();
-            var filteredPictures =
-                allPictures.Where(a => a.LibraryCount > 0 && string.IsNullOrWhiteSpace(a.CopyName)).ToList();
+            var catalogId = _lightroomRepository.GetUniqueId();            
 
-            Log.InfoFormat("Backing up {0} images", filteredPictures.Count);
+            Log.InfoFormat("Backing up {0} images", pictures.Count);
 
             Task.Factory.StartNew(RunUploadCompleteQueue);
 
             var tasks = new List<Task>();
             var index = 0;
-            foreach (var f in filteredPictures)
+            foreach (var f in pictures)
             {
-                Log.InfoFormat("Archiving {0}/{1}: {2}", ++index, filteredPictures.Count, Path.Combine(f.AbsolutePath, f.FileName));
+                Log.InfoFormat("Archiving {0}/{1}: {2}", ++index, pictures.Count, Path.Combine(f.AbsolutePath, f.FileName));
 
                 try
                 {
-                    tasks.Add(_glacierGateway
-                        .SaveImage(f)
-                        .ContinueWith(task => UploadQueue.Add(new UploadBag
+                    var saveTask = _glacierGateway
+                        .SaveImageAsync(f)
+                        .ContinueWith(task =>
                         {
-                            PictureModel = f,
-                            Result = task.Result
-                        }))
-                    );
+                            UploadQueue.Add(new UploadBag
+                            {
+                                PictureModel = f,
+                                Result = task.Result
+                            });
+                        });
+
+                    lock (tasks)
+                    {
+                        Log.DebugFormat("Adding task, id: {0}", saveTask.Id);
+                        tasks.Add(saveTask);
+                    }                    
                 }
                 catch (Exception ex)
                 {
@@ -67,10 +72,15 @@ namespace Avalanche
 
                 if (tasks.Count > 5)
                 {
-                    Task.WhenAny(tasks).ContinueWith(t =>
+                    Log.DebugFormat("Waiting for any task to complete, count: {0}", tasks.Count);
+                    Task.WhenAny(tasks).Wait();
+                   
+                    // purge completed tasks
+                    lock (tasks)
                     {
-                        tasks.Remove(t);
-                    });
+                        tasks.RemoveAll(task => task.IsCompleted);
+                    }
+                    Log.DebugFormat("After purge, count: {0}", tasks.Count);
                 }
             }
             Task.WhenAll(tasks).Wait();
@@ -91,7 +101,10 @@ namespace Avalanche
                 };
                 Log.InfoFormat("Upload completed: {0}", bag.PictureModel.FileName);
 
-                _lightroomRepository.MarkAsArchived(archive, bag.PictureModel);
+                if (_lightroomRepository.MarkAsArchived(archive, bag.PictureModel) < 1)
+                {
+                    Log.ErrorFormat("Failed to mark image as archived: {0}, archive Id: {1}", bag.PictureModel.FileName, bag.Result.ArchiveId);
+                }
             }
         }
     }
