@@ -37,7 +37,11 @@ namespace Avalanche
 
             Log.InfoFormat("Backing up {0} images", pictures.Count);
 
-            Task.Factory.StartNew(RunUploadCompleteQueue);
+            Task.Factory
+                .StartNew(RunUploadCompleteQueue)
+                .ContinueWith(t => {
+                    Log.InfoFormat("Upload complete queue finished. Exception: {0}", t.Exception);
+                });
 
             var tasks = new List<Task>();
             var index = 0;
@@ -99,7 +103,7 @@ namespace Avalanche
                     ArchiveId = result.ArchiveId,
                     PostedTimestamp = DateTime.UtcNow
                 };
-                Log.InfoFormat("Upload completed: {0}", bag.PictureModel.FileName);
+                Log.InfoFormat("Upload completed: {0}, {1}", bag.PictureModel.FileName, bag.Result.ArchiveId);
 
                 if (_lightroomRepository.MarkAsArchived(archive, bag.PictureModel) < 1)
                 {

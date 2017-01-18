@@ -46,13 +46,13 @@ WHERE
             }
         }
 
-        public ICollection<PictureModel> GetAllPictures()
+        public ICollection<PictureModel> GetAllPictures(string collectionName = null)
         {
             var result = new List<PictureModel>();
             using(var connection = OpenNewConnection())
             {
                 var command = connection.CreateCommand();
-                command.CommandText = @"
+                command.CommandText = $@"
 SELECT
 	r.absolutePath AS 'AbsolutePath',
 	r.relativePathFromCatalog AS 'PathFromCatalog',
@@ -69,6 +69,7 @@ FROM
 	LEFT OUTER JOIN Adobe_images m ON f.id_local = m.rootFile
 	LEFT OUTER JOIN AgLibraryCollectionImage i ON m.id_local = i.image
 	LEFT OUTER JOIN AgLibraryCollection c ON i.collection = c.id_local
+{(string.IsNullOrWhiteSpace(collectionName) ? "" : $"WHERE c.name = '{collectionName}'")}
 GROUP BY
 	r.absolutePath,
 	r.relativePathFromCatalog,
@@ -77,7 +78,6 @@ GROUP BY
 	m.id_global,
 	f.id_global
 ";
-
                 var reader = command.ExecuteReader(CommandBehavior.CloseConnection);
                 while (reader.Read())
                 {

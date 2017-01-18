@@ -167,6 +167,7 @@ namespace Avalanche
     {
         public string CatalongFilePath { get; set; }
         public string AvalancheFilePath { get; set; }
+        public string AdobeCollectionName { get; set; }
 
         public IEnumerable<string> GetValidationErrors()
         {

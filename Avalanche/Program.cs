@@ -15,7 +15,6 @@ namespace Avalanche
 {
     public class Program
     {
-       
         private static readonly ILog Log = LogManager.GetLogger(typeof(Program));
 
         public static void Main(string[] args)
@@ -40,7 +39,7 @@ namespace Avalanche
 
             var lightroomRepository = new LightroomRepository(parameters.Avalanche.CatalongFilePath);
             var glacierGateway = new GlacierGateway(parameters.Glacier);
-            var allPictures = lightroomRepository.GetAllPictures();
+            var allPictures = lightroomRepository.GetAllPictures(parameters.Avalanche.AdobeCollectionName);
             var toUpload = allPictures.Where(a => a.LibraryCount > 0 && string.IsNullOrWhiteSpace(a.CopyName)).ToList();
 
             using (var insomniac = new Insomniac())
