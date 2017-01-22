@@ -1,15 +1,9 @@
 ﻿using Avalanche.Glacier;
 using Avalanche.Lightroom;
-using Avalanche.Models;
 using log4net;
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
-using Amazon.Glacier.Transfer;
-using Newtonsoft.Json;
 
 namespace Avalanche
 {
@@ -37,14 +31,20 @@ namespace Avalanche
                 Environment.Exit(0);
             }
 
-            var lightroomRepository = new LightroomRepository(parameters.Avalanche.CatalongFilePath);
+            Log.InfoFormat("Glacier valut: {0}", parameters.Glacier.VaultName);
             var glacierGateway = new GlacierGateway(parameters.Glacier);
+
+            Log.InfoFormat("Archiving pictures from: {0}", parameters.Avalanche.CatalongFilePath);
+            var lightroomRepository = new LightroomRepository(parameters.Avalanche.CatalongFilePath);
+
+            Log.InfoFormat("Collection name: {0}", parameters.Avalanche.AdobeCollectionName);
             var allPictures = lightroomRepository.GetAllPictures(parameters.Avalanche.AdobeCollectionName);
             var toUpload = allPictures.Where(a => a.LibraryCount > 0 && string.IsNullOrWhiteSpace(a.CopyName)).ToList();
 
+            Log.InfoFormat("Selected {0} pictures out from {1}", toUpload.Count, allPictures.Count);
             using (var insomniac = new Insomniac())
             {
-                var uploader = new GlacierUploader(lightroomRepository, glacierGateway);
+                var uploader = new GlacierUploader(lightroomRepository, glacierGateway, parameters.DryRun);
                 uploader.RunUploader(toUpload);
             }
 
