@@ -4,7 +4,14 @@
     "debugType": "portable",
     "emitEntryPoint": true
   },
-  "dependencies": {},
+  "dependencies": {
+    "AWSSDK.Core": "3.3.8",
+    "Mono.Options": "4.4.0",
+    "Newtonsoft.Json": "9.0.2-beta2",
+    "Microsoft.Framework.Logging": "1.0.0-beta8",
+    "Microsoft.Framework.DependencyInjection": "1.0.0-beta8",
+    "Microsoft.Framework.Logging.Console": "1.0.0-beta8"
+  },
   "frameworks": {
     "netcoreapp1.0": {
       "dependencies": {
