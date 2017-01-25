@@ -104,18 +104,19 @@ namespace Avalanche
 
     public class AvalancheParameters
     {
-        public string CatalongFilePath { get; set; }
+        public string CatalogFilePath { get; set; }
+
         public string AvalancheFilePath { get; set; }
 
         public IEnumerable<string> GetValidationErrors()
         {
-            if (string.IsNullOrWhiteSpace(CatalongFilePath))
+            if (string.IsNullOrWhiteSpace(CatalogFilePath))
             {
                 yield return "Lightroom Catalog file path is required";
             }
-            else if (!File.Exists(CatalongFilePath))
+            else if (!File.Exists(CatalogFilePath))
             {
-                yield return "Could not find a Lightroom Catalog file at path " + CatalongFilePath;
+                yield return "Could not find a Lightroom Catalog file at path " + CatalogFilePath;
             }
 
             if (string.IsNullOrWhiteSpace(AvalancheFilePath))

@@ -23,10 +23,12 @@ namespace Avalanche
     public class AvalancheRunner
     {
         private readonly ILogger<AvalancheRunner> _logger;
+        private readonly string[] _args;
         
-        public AvalancheRunner(ILogger<AvalancheRunner> logger)
+        public AvalancheRunner(ILogger<AvalancheRunner> logger, string[] args)
         {
             _logger = logger;
+            _args = args;
         }
 
         public void Run()
