@@ -9,7 +9,8 @@
     "dotnet-test-xunit": "1.0.0-rc2-192208-24",
     "Avalanche": {
       "target": "project"
-    }
+    },
+    "NSubstitute": "2.0.1-rc"
   },
   "testRunner": "xunit",
   "frameworks": {

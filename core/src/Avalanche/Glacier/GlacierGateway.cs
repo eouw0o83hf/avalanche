@@ -19,6 +19,7 @@ namespace Avalanche.Glacier
     {
         private readonly ILogger<GlacierGateway> _logger;
         private readonly IConsolePercentUpdater _updater;
+        private readonly IArchiveProvider _archiveProvider;
         
         private readonly string _accessKeyId;
         private readonly string _secretAccessKey;
@@ -26,7 +27,7 @@ namespace Avalanche.Glacier
         private readonly RegionEndpoint _region;
 
         public GlacierGateway(GlacierParameters parameters, ILogger<GlacierGateway> logger,
-                                IConsolePercentUpdater updater)
+                                IConsolePercentUpdater updater, IArchiveProvider archiveProvider)
         {
             _accessKeyId = parameters.AccessKeyId;
             _secretAccessKey = parameters.SecretAccessKey;
@@ -35,6 +36,7 @@ namespace Avalanche.Glacier
 
             _logger = logger;
             _updater = updater;
+            _archiveProvider = archiveProvider;
         }
 
         private IAmazonGlacier GetGlacierClient()
@@ -97,9 +99,9 @@ namespace Avalanche.Glacier
 
         #region Save
 
-        public async Task<ArchivedPictureModel> SaveImage(PictureModel picture, string vaultName = "Pictures", bool compress = true)
+        public async Task<ArchivedPictureModel> SaveImage(PictureModel picture, string vaultName = "Pictures")
         {
-            var archive = await SaveFile(Path.Combine(picture.AbsolutePath, picture.FileName), picture, vaultName, compress);
+            var archive = await SaveFile(Path.Combine(picture.AbsolutePath, picture.FileName), picture, vaultName);
             return new ArchivedPictureModel
             {
                 Archive = archive,
@@ -107,11 +109,11 @@ namespace Avalanche.Glacier
             };
         }
 
-        public async Task<ArchiveModel> SaveFile(string filename, object metadata, string vaultName, bool compress)
+        public async Task<ArchiveModel> SaveFile(string filename, object metadata, string vaultName)
         {
             var json = JsonConvert.SerializeObject(metadata);
 
-            using (var fileStream = await GetFileStream(filename, compress, json))
+            using (var fileStream = await _archiveProvider.GetFileStream(filename, json))
             using (var client = GetGlacierClient())
             {
                 _logger.LogInformation("Uploading {0}, {1} bytes", filename, fileStream.Length);
@@ -146,54 +148,7 @@ namespace Avalanche.Glacier
 
                 return response;
             }
-        }
-
-        private async Task<Stream> GetFileStream(string filename, bool compress, string metadata, string metadataFilename = "metadata.txt")
-        {
-            var file = File.OpenRead(filename);
-            if (!compress)
-            {
-                return file;
-            }
-
-            var inputFileLength = file.Length;
-
-            // Setup the streams to be zipped 
-            var compressions = new Dictionary<string, Stream>();
-
-            var filenameOnly = Path.GetFileName(filename);
-            compressions[filenameOnly] = file;
-
-            var metadataStream = new MemoryStream(Encoding.Unicode.GetBytes(metadata));
-            // Make sure there's not some bizarre filename coincidence
-            if (metadataFilename == filenameOnly)
-            {
-                metadataFilename += ".actuallythemetadata.txt";
-            }
-            compressions[metadataFilename] = metadataStream;
-            
-            // Compress!
-            var compressedStream = new MemoryStream();
-
-            // Might need to change `true` to `false`
-            using(var archive = new ZipArchive(compressedStream, ZipArchiveMode.Create, true))
-            {
-                foreach(var item in compressions)
-                {
-                    var currentEntry = archive.CreateEntry(item.Key, CompressionLevel.Optimal);
-                    using(var entryStream = currentEntry.Open())
-                    {
-                        await item.Value.CopyToAsync(entryStream);
-                    }
-                }
-            }
-            
-            compressedStream.Position = 0;
-
-            _logger.LogInformation("Compressed {0} from {1} to {2}, removing {3:0.00}%", filenameOnly, inputFileLength, compressedStream.Length, (float)((inputFileLength - compressedStream.Length) * 100) / inputFileLength);
-            
-            return compressedStream;
-        }
+        }        
 
         #endregion
 
