@@ -12,7 +12,9 @@
     "Microsoft.Framework.DependencyInjection": "1.0.0-beta8",
     "Microsoft.Framework.Logging.Console": "1.0.0-beta8",
     "System.Data.Common": "4.3.0",
-    "Microsoft.EntityFrameworkCore.Sqlite": "1.1.0"
+    "Microsoft.EntityFrameworkCore.Sqlite": "1.1.0",
+    "AWSSDK.Glacier": "3.3.1.5",
+    "System.IO.Compression": "4.3.0"
   },
   "frameworks": {
     "netcoreapp1.0": {

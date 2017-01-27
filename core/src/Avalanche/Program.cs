@@ -1,4 +1,7 @@
 ﻿using System;
+using Avalanche.Glacier;
+using Avalanche.Lightroom;
+using Avalanche.Repository;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
 
@@ -9,7 +12,12 @@ namespace Avalanche
         public static void Main(string[] args)
         {
             var container = new ServiceCollection().AddLogging();
-            container.AddSingleton<AvalancheRunner>();
+            container
+                .AddSingleton<AvalancheRunner>()
+                .AddSingleton<IConsolePercentUpdater, ConsolePercentUpdater>()
+                .AddSingleton<GlacierGateway>()
+                .AddSingleton<LightroomRepository>()
+                .AddSingleton<AvalancheRepository>();
 
             var serviceProvider = container.BuildServiceProvider();
             var logFactory = serviceProvider.GetService<ILoggerFactory>();
@@ -33,7 +41,13 @@ namespace Avalanche
 
         public void Run()
         {
-            _logger.LogInformation("Hello World!");
+            var filename = ExecutionParameterHelpers.ResolveConfigFileLocation(_args);
+            if(filename == null)
+            {
+                return;
+            }
+
+            var config = ExecutionParameterHelpers.LoadExecutionParameters(filename);
         }
     }
 }
