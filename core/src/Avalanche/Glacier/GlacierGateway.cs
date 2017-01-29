@@ -2,7 +2,6 @@ using Amazon;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using Newtonsoft.Json;
@@ -11,12 +10,21 @@ using Amazon.Runtime;
 using Microsoft.Framework.Logging;
 using Amazon.Glacier;
 using Amazon.Glacier.Model;
-using System.IO.Compression;
 
 namespace Avalanche.Glacier
 {
-    public class GlacierGateway
+    public interface IGlacierGateway
     {
+        Task AssertVaultExists(string vaultName);
+        Task<ArchivedPictureModel> SaveImage(PictureModel picture, string vaultName = "Pictures");
+        
+        Task BeginVaultInventoryRetrieval(string vaultName, string notificationTargetTopicId);
+        Task PickupVaultInventoryRetrieval(string vaultName, string jobId, string outputFileName);
+    }
+    
+    public class GlacierGateway : IGlacierGateway
+    {
+        private readonly IAmazonGlacier _glacier;
         private readonly ILogger<GlacierGateway> _logger;
         private readonly IConsolePercentUpdater _updater;
         private readonly IArchiveProvider _archiveProvider;
@@ -26,82 +34,40 @@ namespace Avalanche.Glacier
         private readonly string _accountId;
         private readonly RegionEndpoint _region;
 
-        public GlacierGateway(GlacierParameters parameters, ILogger<GlacierGateway> logger,
-                                IConsolePercentUpdater updater, IArchiveProvider archiveProvider)
+        public GlacierGateway(IAmazonGlacier glacier, ILogger<GlacierGateway> logger,
+                              IConsolePercentUpdater updater, IArchiveProvider archiveProvider)
         {
-            _accessKeyId = parameters.AccessKeyId;
-            _secretAccessKey = parameters.SecretAccessKey;
-            _accountId = parameters.AccountId ?? "-";
-            _region = parameters.GetRegion();
-
+            _glacier = glacier;
             _logger = logger;
             _updater = updater;
             _archiveProvider = archiveProvider;
         }
 
-        private IAmazonGlacier GetGlacierClient()
-        {
-            return new AmazonGlacierClient(_accessKeyId, _secretAccessKey, _region);
-        }
-
-        #region Vaults
-
         public async Task AssertVaultExists(string vaultName)
         {
             vaultName = GetTrimmedVaultName(vaultName);
-            var exists = await VaultExists(vaultName);
 
-            if (exists)
+            var listResponse = await _glacier.ListVaultsAsync(new ListVaultsRequest
             {
-                _logger.LogDebug("Vault {0} exists", vaultName);
+                AccountId = _accountId
+            });
+            if(listResponse.VaultList.Any(a => a.VaultName.Equals(vaultName)))
+            {
                 return;
             }
 
             _logger.LogInformation("Creating vault {0}", vaultName);
-            using (var client = GetGlacierClient())
+            var result = await _glacier.CreateVaultAsync(new CreateVaultRequest
             {
-                var result = await client.CreateVaultAsync(new CreateVaultRequest
-                {
-                    AccountId = _accountId,
-                    VaultName = vaultName
-                });
-                _logger.LogDebug("Vault creation result: {0}", result.HttpStatusCode);
-            }
+                AccountId = _accountId,
+                VaultName = vaultName
+            });
+            _logger.LogDebug("Vault creation result: {0}", result.HttpStatusCode);
         }
-
-        private async Task<bool> VaultExists(string vaultName)
-        {
-            vaultName = GetTrimmedVaultName(vaultName);
-
-            using (var client = GetGlacierClient())
-            {
-                var response = await client.ListVaultsAsync(new ListVaultsRequest
-                {
-                    AccountId = _accountId
-                });
-
-                return response.VaultList.Any(a => a.VaultName.Equals(vaultName));
-            }
-        }
-
-        private string GetTrimmedVaultName(string vaultName)
-        {
-            if (string.IsNullOrWhiteSpace(vaultName))
-            {
-                throw new ArgumentException("Value cannot be null/empty", "vaultName");
-            }
-
-            vaultName = vaultName.Trim();
-            return vaultName;
-        }
-
-        #endregion
-
-        #region Save
 
         public async Task<ArchivedPictureModel> SaveImage(PictureModel picture, string vaultName = "Pictures")
         {
-            var archive = await SaveFile(Path.Combine(picture.AbsolutePath, picture.FileName), picture, vaultName);
+            var archive = await SaveFileWithMetadata(Path.Combine(picture.AbsolutePath, picture.FileName), picture, vaultName);
             return new ArchivedPictureModel
             {
                 Archive = archive,
@@ -109,12 +75,11 @@ namespace Avalanche.Glacier
             };
         }
 
-        public async Task<ArchiveModel> SaveFile(string filename, object metadata, string vaultName)
+        private async Task<ArchiveModel> SaveFileWithMetadata(string filename, object metadata, string vaultName)
         {
             var json = JsonConvert.SerializeObject(metadata);
 
             using (var fileStream = await _archiveProvider.GetFileStream(filename, json))
-            using (var client = GetGlacierClient())
             {
                 _logger.LogInformation("Uploading {0}, {1} bytes", filename, fileStream.Length);
 
@@ -122,7 +87,7 @@ namespace Avalanche.Glacier
                 fileStream.Position = 0;
 
                 _updater.UpdatePercentage(filename, 0);
-                var result = await client.UploadArchiveAsync(new UploadArchiveRequest
+                var result = await _glacier.UploadArchiveAsync(new UploadArchiveRequest
                 {
                     AccountId = _accountId,
                     ArchiveDescription = json,
@@ -150,46 +115,45 @@ namespace Avalanche.Glacier
             }
         }        
 
-        #endregion
-
-        #region Load
-
         public async Task BeginVaultInventoryRetrieval(string vaultName, string notificationTargetTopicId)
         {
             vaultName = GetTrimmedVaultName(vaultName);
-            using (var client = GetGlacierClient())
+            var response = await _glacier.InitiateJobAsync(new InitiateJobRequest
             {
-                var response = await client.InitiateJobAsync(new InitiateJobRequest
+                VaultName = vaultName,
+                JobParameters = new JobParameters
                 {
-                    VaultName = vaultName,
-                    JobParameters = new JobParameters
-                    {
-                        Type = "inventory-retrieval",
-                        SNSTopic = notificationTargetTopicId
-                    }
-                });
-                _logger.LogDebug("Job ID: {0}", response.JobId);
-            }
+                    Type = "inventory-retrieval",
+                    SNSTopic = notificationTargetTopicId
+                }
+            });
+            _logger.LogDebug("Job ID: {0}", response.JobId);
         }
 
         public async Task PickupVaultInventoryRetrieval(string vaultName, string jobId, string outputFileName)
         {
-            using(var client = GetGlacierClient())
+            var result = await _glacier.GetJobOutputAsync(new GetJobOutputRequest
             {
-                var result = await client.GetJobOutputAsync(new GetJobOutputRequest
-                {
-                    AccountId = _accountId,
-                    JobId = jobId,
-                    VaultName = vaultName
-                });
+                AccountId = _accountId,
+                JobId = jobId,
+                VaultName = vaultName
+            });
 
-                using (var file = File.OpenWrite(outputFileName))
-                {
-                    result.Body.CopyTo(file);
-                }
+            using (var file = File.OpenWrite(outputFileName))
+            {
+                result.Body.CopyTo(file);
             }
         }
 
-        #endregion
+        private static string GetTrimmedVaultName(string vaultName)
+        {
+            if (string.IsNullOrWhiteSpace(vaultName))
+            {
+                throw new ArgumentException("Value cannot be null/empty", "vaultName");
+            }
+
+            vaultName = vaultName.Trim();
+            return vaultName;
+        }
     }
 }
