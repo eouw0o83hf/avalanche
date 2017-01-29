@@ -14,7 +14,8 @@
     "System.Data.Common": "4.3.0",
     "Microsoft.EntityFrameworkCore.Sqlite": "1.1.0",
     "AWSSDK.Glacier": "3.3.1.5",
-    "System.IO.Compression": "4.3.0"
+    "System.IO.Compression": "4.3.0",
+    "structuremap": "4.4.2"
   },
   "frameworks": {
     "netcoreapp1.0": {

@@ -5,6 +5,7 @@ using Avalanche.State;
 using Avalanche.Runner;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
+using StructureMap;
 
 namespace Avalanche
 {
@@ -20,21 +21,13 @@ namespace Avalanche
 
             var config = ExecutionParameterHelpers.LoadExecutionParameters(filename);
 
-            var container = new ServiceCollection().AddLogging();
-            container
-                .AddInstance(config)
-                .AddSingleton<AvalancheRunner>()
-                .AddSingleton<IConsolePercentUpdater, ConsolePercentUpdater>()
-                .AddSingleton<IGlacierGateway, GlacierGateway>()
-                .AddSingleton<ILightroomReader, LightroomReader>()
-                .AddSingleton<IAvalancheRepository, AvalancheRepository>();
+            var container = new Container();
+            var installer = new DependencyInjectionInstaller(config);
+            installer.Install(container);
 
-            var serviceProvider = container.BuildServiceProvider();
-            var logFactory = serviceProvider.GetService<ILoggerFactory>();
-            logFactory.AddConsole();
-            
-            var runner = serviceProvider.GetService<AvalancheRunner>();
-            runner.Run();
+            var runner = container.GetInstance<IAvalancheRunner>();
+            runner.Run().Wait();
+            container.Release(runner);
         }
     }
 }

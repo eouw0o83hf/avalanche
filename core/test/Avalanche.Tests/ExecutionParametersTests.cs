@@ -22,5 +22,15 @@ namespace Avalanche.Tests
             var validation = parameters.GetValidationErrors();
             Assert.Equal(6, validation.Count());
         }
+
+        [Fact]
+        public void GetRegion_ExplodesOnNoMatch()
+        {
+            var glacier = new GlacierParameters
+            {
+                Region = "not a region"
+            };
+            Assert.ThrowsAny<Exception>(() => glacier.GetRegion());
+        }
     }
 }

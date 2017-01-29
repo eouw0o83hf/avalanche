@@ -76,7 +76,7 @@ namespace Avalanche
                     return r;
                 }
             }
-            return null;
+            throw new Exception($"Could not parse the value of `{nameof(Region)}` [{Region}] into an Amazon.RegionEndpoint");
         }
 
         public IEnumerable<string> GetValidationErrors()
