@@ -1,9 +1,7 @@
-using System;
 using Xunit;
 using Avalanche.Glacier;
 using System.IO;
 using NSubstitute;
-using NSubstitute.Core;
 using Microsoft.Framework.Logging;
 using System.Linq;
 using System.Threading.Tasks;

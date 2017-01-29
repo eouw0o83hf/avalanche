@@ -1,9 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Avalanche.Glacier
 {
@@ -12,13 +8,14 @@ namespace Avalanche.Glacier
         void UpdatePercentage(string file, int percent);
     }
 
+    // I'm not terribly sure how I want this component to work, but
+    // this interface gives a foundation to work with when everything
+    // else is wired together and mostly working.
     public class ConsolePercentUpdater : IConsolePercentUpdater
     {
-        private readonly ConcurrentDictionary<string, int> Percents = new ConcurrentDictionary<string, int>();
-
         public void UpdatePercentage(string file, int percent)
         {
-
+            Console.WriteLine($"{file} is at {percent}%");
         }
     }
 }

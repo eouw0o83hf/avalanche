@@ -13,6 +13,9 @@ using Amazon.Glacier.Model;
 
 namespace Avalanche.Glacier
 {
+    /// <summary>
+    /// Wraps the AWS Glacier API using Avalanche models and context so it's easy to call
+    /// </summary>
     public interface IGlacierGateway
     {
         Task AssertVaultExists(string vaultName);

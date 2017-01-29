@@ -16,7 +16,7 @@ namespace Avalanche
                 .AddSingleton<AvalancheRunner>()
                 .AddSingleton<IConsolePercentUpdater, ConsolePercentUpdater>()
                 .AddSingleton<GlacierGateway>()
-                .AddSingleton<LightroomRepository>()
+                .AddSingleton<ILightroomReader, LightroomReader>()
                 .AddSingleton<AvalancheRepository>();
 
             var serviceProvider = container.BuildServiceProvider();
