@@ -29,18 +29,17 @@ namespace Avalanche.Glacier
         private readonly IConsolePercentUpdater _updater;
         private readonly IArchiveProvider _archiveProvider;
         
-        private readonly string _accessKeyId;
-        private readonly string _secretAccessKey;
         private readonly string _accountId;
-        private readonly RegionEndpoint _region;
 
         public GlacierGateway(IAmazonGlacier glacier, ILogger<GlacierGateway> logger,
-                              IConsolePercentUpdater updater, IArchiveProvider archiveProvider)
+                              IConsolePercentUpdater updater, IArchiveProvider archiveProvider,
+                              string accountId)
         {
             _glacier = glacier;
             _logger = logger;
             _updater = updater;
             _archiveProvider = archiveProvider;
+            _accountId = accountId;
         }
 
         public async Task AssertVaultExists(string vaultName)
