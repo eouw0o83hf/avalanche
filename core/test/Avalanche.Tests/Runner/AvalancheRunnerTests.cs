@@ -10,6 +10,7 @@ using NSubstitute;
 using Avalanche.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using NSubstitute.Core;
 
 namespace Avalanche.Tests.Runner
 {
@@ -111,15 +112,68 @@ namespace Avalanche.Tests.Runner
         }
 
         [Fact]
-        public void Archiving_GivenTransportFailures_TriesThreeTimes()
+        public async Task Archiving_GivenTransportFailures_TriesThreeTimes()
         {
-            Assert.False(true);
+            var pictures = new []
+            {
+                new PictureModel
+                {
+                    AbsolutePath = $"/dev/null/0.jpg",
+                    FileName = $"0.jpg",
+                    FileId = Guid.NewGuid(),
+                    ImageId = Guid.NewGuid(),
+                    LibraryCount = 1
+                }
+            };
+
+            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
+            _lightroom.GetAllPictures().Returns(pictures);
+            _avalanche.FileIsArchived(Arg.Any<Guid>()).ReturnsForAnyArgs(false);
+
+            _glacier.SaveImage(Arg.Any<PictureModel>(), Arg.Any<string>())
+                    .Returns(SaveImageFails, SaveImageFails, SaveImageSucceeds);
+
+            var result = await _sut.Run();
+
+            _avalanche.Received()
+                      .MarkFileAsArchived(Arg.Any<ArchivedPictureModel>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+            Assert.Equal(1, result.Successes.Count);
         }
 
         [Fact]
-        public void Archiving_GivenTransportFailures_GivesUpAfterThreeFailures()
+        public async Task Archiving_GivenTransportFailures_GivesUpAfterThreeFailures()
         {
-            Assert.False(true);            
+            var pictures = new []
+            {
+                new PictureModel
+                {
+                    AbsolutePath = $"/dev/null/0.jpg",
+                    FileName = $"0.jpg",
+                    FileId = Guid.NewGuid(),
+                    ImageId = Guid.NewGuid(),
+                    LibraryCount = 1
+                }
+            };
+
+            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
+            _lightroom.GetAllPictures().Returns(pictures);
+            _avalanche.FileIsArchived(Arg.Any<Guid>()).ReturnsForAnyArgs(false);
+
+            _glacier.SaveImage(Arg.Any<PictureModel>(), Arg.Any<string>())
+                    .Returns(SaveImageFails, SaveImageFails, SaveImageFails);
+
+            var result = await _sut.Run();
+
+            _avalanche.DidNotReceive()
+                      .MarkFileAsArchived(Arg.Any<ArchivedPictureModel>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+            Assert.Equal(1, result.Failures.Count);       
         }
+
+        private static ArchivedPictureModel SaveImageFails(CallInfo callInfo)
+        {
+            throw new Exception();
+        } 
+
+        private static ArchivedPictureModel SaveImageSucceeds(CallInfo callInfo) => new ArchivedPictureModel();
     }
 }
