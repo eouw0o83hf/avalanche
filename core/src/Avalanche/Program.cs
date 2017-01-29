@@ -1,7 +1,7 @@
 ﻿using System;
 using Avalanche.Glacier;
 using Avalanche.Lightroom;
-using Avalanche.Repository;
+using Avalanche.State;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
 
@@ -15,9 +15,9 @@ namespace Avalanche
             container
                 .AddSingleton<AvalancheRunner>()
                 .AddSingleton<IConsolePercentUpdater, ConsolePercentUpdater>()
-                .AddSingleton<GlacierGateway>()
+                .AddSingleton<IGlacierGateway, GlacierGateway>()
                 .AddSingleton<ILightroomReader, LightroomReader>()
-                .AddSingleton<AvalancheRepository>();
+                .AddSingleton<IAvalancheRepository, AvalancheRepository>();
 
             var serviceProvider = container.BuildServiceProvider();
             var logFactory = serviceProvider.GetService<ILoggerFactory>();

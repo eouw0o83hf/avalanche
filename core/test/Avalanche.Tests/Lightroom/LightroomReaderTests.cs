@@ -3,7 +3,6 @@ using System.Data;
 using Xunit;
 using Avalanche.Lightroom;
 using NSubstitute;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
