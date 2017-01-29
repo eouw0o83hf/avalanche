@@ -2,6 +2,7 @@
 using Avalanche.Glacier;
 using Avalanche.Lightroom;
 using Avalanche.State;
+using Avalanche.Runner;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
 
@@ -11,8 +12,17 @@ namespace Avalanche
     {
         public static void Main(string[] args)
         {
+            var filename = ExecutionParameterHelpers.ResolveConfigFileLocation(args);
+            if(filename == null)
+            {
+                return;
+            }
+
+            var config = ExecutionParameterHelpers.LoadExecutionParameters(filename);
+
             var container = new ServiceCollection().AddLogging();
             container
+                .AddInstance(config)
                 .AddSingleton<AvalancheRunner>()
                 .AddSingleton<IConsolePercentUpdater, ConsolePercentUpdater>()
                 .AddSingleton<IGlacierGateway, GlacierGateway>()
@@ -25,29 +35,6 @@ namespace Avalanche
             
             var runner = serviceProvider.GetService<AvalancheRunner>();
             runner.Run();
-        }
-    }
-
-    public class AvalancheRunner
-    {
-        private readonly ILogger<AvalancheRunner> _logger;
-        private readonly string[] _args;
-        
-        public AvalancheRunner(ILogger<AvalancheRunner> logger, string[] args)
-        {
-            _logger = logger;
-            _args = args;
-        }
-
-        public void Run()
-        {
-            var filename = ExecutionParameterHelpers.ResolveConfigFileLocation(_args);
-            if(filename == null)
-            {
-                return;
-            }
-
-            var config = ExecutionParameterHelpers.LoadExecutionParameters(filename);
         }
     }
 }

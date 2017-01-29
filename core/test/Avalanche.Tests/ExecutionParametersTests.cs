@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Avalanche.Tests
 {
-    public class ExecutionParametersTsts
+    public class ExecutionParametersTests
     {
         [Fact]
         public void ValidationErrors_RollUp()

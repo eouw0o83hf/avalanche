@@ -48,6 +48,10 @@ namespace Avalanche
         public static ExecutionParameters LoadExecutionParameters(string configFileLocation)
         {
             var serialized = File.ReadAllText(configFileLocation);
+            if(serialized.Contains("CatalongFilePath"))
+            {
+                throw new Exception("There was a typo in the original config code. Please rename `CatalongFilePath` to `CatalogFilePath` in your config file.");
+            }
             return JsonConvert.DeserializeObject<ExecutionParameters>(serialized);
         }
     }
