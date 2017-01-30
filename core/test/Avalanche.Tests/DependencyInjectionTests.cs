@@ -6,20 +6,27 @@ using Avalanche.Glacier;
 using Microsoft.Framework.Logging;
 using Amazon;
 using Amazon.Glacier;
+using System.IO;
+using Avalanche.Lightroom;
+using Avalanche.State;
+using Avalanche.Runner;
 
 namespace Avalanche.Tests
 {
     public class DependencyInjectionTests
     {
-        [Fact]
-        public void DiSeemsToWork()
+        private readonly ExecutionParameters _executionParameters;
+
+        private readonly IContainer _container;
+
+        public DependencyInjectionTests()
         {
-            var container = new Container();
-            var config = new ExecutionParameters
+            _executionParameters = new ExecutionParameters
             {
                 Avalanche = new AvalancheParameters
                 {
-
+                    CatalogFilePath = ":memory:",
+                    AvalancheFilePath = ":memory:"
                 },
                 Glacier = new GlacierParameters
                 {
@@ -29,11 +36,37 @@ namespace Avalanche.Tests
                     Region = RegionEndpoint.USEast1.SystemName
                 }
             };
-            new DependencyInjectionInstaller(config).Install(container);
-            var thing = container.GetInstance<ILogger<DependencyInjectionTests>>();
-            thing.LogInformation("OH HAI THERE");
-            var thing3 = container.GetInstance<IAmazonGlacier>();
-            var thing2 = container.GetInstance<IGlacierGateway>();
+            
+            _container = new Container();
+            new DependencyInjectionInstaller(_executionParameters).Install(_container);
+        }
+
+        [Fact]
+        public void GlacierComponentsResolve()
+        {
+            var glacier = _container.GetInstance<IAmazonGlacier>();
+            var gateway = _container.GetInstance<IGlacierGateway>();
+            var logger = _container.GetInstance<ILogger<DependencyInjectionTests>>();
+        }
+
+        [Fact]
+        public void LightroomComponentsResolve()
+        {
+            var lightroom = _container.GetInstance<ILightroomReader>();
+        }
+
+        [Fact]
+        public void AvalancheStateComponentsResolve()
+        {
+            var avalancheState = _container.GetInstance<IAvalancheRepository>();
+            var vaultId = avalancheState.GetOrCreateVaultId("name", "region");
+            Assert.True(vaultId > 0);
+        }
+
+        [Fact]
+        public void AvalancheRunnerResolves()
+        {
+            var avalancheRunner = _container.GetInstance<IAvalancheRunner>();
         }
     }
 }

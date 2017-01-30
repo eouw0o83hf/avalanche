@@ -10,6 +10,7 @@ using Avalanche.Runner;
 using StructureMap;
 using Amazon.Glacier;
 using Amazon;
+using System.Linq.Expressions;
 
 namespace Avalanche
 {
@@ -24,17 +25,16 @@ namespace Avalanche
 
         public void Install(IContainer container)
         {
+            var loggerFactory = new LoggerFactory();
+            loggerFactory.AddConsole();
+
             // Root/config dependencies
             container.Configure(_ =>
             {
                 _.For<ExecutionParameters>().Use(_executionParameters);
                 _.For(typeof(ILogger<>)).Use(typeof(Logger<>)).Singleton();
-                _.For<ILoggerFactory>().Use<LoggerFactory>().Singleton();
+                _.For<ILoggerFactory>().Use(loggerFactory).Singleton();
             });
-
-            var loggerFactory = container.GetInstance<ILoggerFactory>();
-            loggerFactory.AddConsole();
-            container.Release(loggerFactory);
             
             // Glacier
             container.Configure(_ => 
@@ -51,40 +51,37 @@ namespace Avalanche
                         .Ctor<string>("accountId").Is(_executionParameters.Glacier.AccountId);
             });
 
-            // // Lightroom
-            // container.Configure(_ => 
-            //     serviceCollection
-            //         .AddTransient<ILightroomReader, LightroomReader>()
-            //         .AddTransient<IDbConnection>(a =>
-            //         {
-            //             return new SqliteConnection($"DataSource={_executionParameters.Avalanche.CatalogFilePath}");
-            //         });
-            // );
+            // Lightroom
+            container.Configure(_ =>
+            {
+                var lightroomDbInstanceName = "lightroomDbInstanceName";
+                
+                _.For<ILightroomReader>().Use<LightroomReader>().Transient()
+                        .Ctor<IDbConnection>().IsNamedInstance(lightroomDbInstanceName);
+                _.For<IDbConnection>().Use<SqliteConnection>().Transient()
+                        .Named("lightroomDbInstanceName")
+                        .Ctor<string>("connectionString").Is($"DataSource={_executionParameters.Avalanche.CatalogFilePath}")
+                        .OnCreation(a => a.Open());
+            });            
 
-            // // Runner
-            // container.Configure(_ => 
-            //     serviceCollection
-            //         .AddSingleton<IAvalancheRunner, AvalancheRunner>();
-            // );
+            // State
+            container.Configure(_ =>
+            {
+                var avalancheDbInstanceName = "avalancheDbInstanceName";
+                
+                _.For<IAvalancheRepository>().Use<AvalancheRepository>().Transient()
+                        .Ctor<IDbConnection>().IsNamedInstance(avalancheDbInstanceName);
+                _.For<IDbConnection>().Use<SqliteConnection>().Transient()
+                        .Named(avalancheDbInstanceName)
+                        .Ctor<string>("connectionString").Is($"DataSource={_executionParameters.Avalanche.AvalancheFilePath}")
+                        .OnCreation(a => a.Open());
+            });
 
-            // // State
-            // container.Configure(_ => 
-            //     serviceCollection
-            //         .AddTransient<IAvalancheRepository, AvalancheRepository>()
-            //         .AddTransient<IDbConnection>(a =>
-            //         {
-            //             return new SqliteConnection($"DataSource={_executionParameters.Avalanche.AvalancheFilePath}");
-            //         });
-            // );
+            // Runner
+            container.Configure(_ =>
+            {
+                _.For<IAvalancheRunner>().Use<AvalancheRunner>().Singleton();
+            });
         }
-
-        // private IServiceProvider Finalize(IServiceCollection serviceCollection)
-        // {
-        //     var container = serviceCollection.BuildServiceProvider();
-        //     var logFactory = container.GetService<ILoggerFactory>();
-        //     logFactory.AddConsole();
-
-        //     return container;
-        // }
     }
 }
