@@ -1,6 +1,4 @@
-using System;
 using Avalanche.Glacier;
-using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
 using Microsoft.Data.Sqlite;
 using System.Data;
@@ -10,10 +8,11 @@ using Avalanche.Runner;
 using StructureMap;
 using Amazon.Glacier;
 using Amazon;
-using System.Linq.Expressions;
 
 namespace Avalanche
 {
+    // I couldn't quickly find an accepted pattern for StructureMap
+    // installers, so I cargo-culted over the way Castle Windsor does it
     public class DependencyInjectionInstaller
     {
         private readonly ExecutionParameters _executionParameters;

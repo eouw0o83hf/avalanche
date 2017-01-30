@@ -1,10 +1,4 @@
-﻿using System;
-using Avalanche.Glacier;
-using Avalanche.Lightroom;
-using Avalanche.State;
-using Avalanche.Runner;
-using Microsoft.Framework.DependencyInjection;
-using Microsoft.Framework.Logging;
+﻿using Avalanche.Runner;
 using StructureMap;
 
 namespace Avalanche
@@ -21,13 +15,15 @@ namespace Avalanche
 
             var config = ExecutionParameterHelpers.LoadExecutionParameters(filename);
 
-            var container = new Container();
-            var installer = new DependencyInjectionInstaller(config);
-            installer.Install(container);
+            using(var container = new Container())
+            {
+                var installer = new DependencyInjectionInstaller(config);
+                installer.Install(container);
 
-            var runner = container.GetInstance<IAvalancheRunner>();
-            runner.Run().Wait();
-            container.Release(runner);
+                var runner = container.GetInstance<IAvalancheRunner>();
+                runner.Run().GetAwaiter().GetResult();
+                container.Release(runner);
+            }
         }
     }
 }
