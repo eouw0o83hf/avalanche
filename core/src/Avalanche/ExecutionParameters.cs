@@ -40,19 +40,38 @@ namespace Avalanche
             var options = new OptionSet
             {
                 { "c=|config-file=", "REQUIRED: Path/File for Avalanche Config File", a => configFileLocation = a.Trim('"') },
-                { "t=|test", "Run in test mode without pushing any files to AWS", a => testMode = a != null },
+                { "t|test", "Run in test mode without pushing any files to AWS", a => testMode = a != null },
                 { "h|help", "Help", a => showHelp = a != null }
             };
 
+            const string helpPointer = "Use -h or --help for help prompt. Note that dotnet core cli needs an extra --, so this would look like $ dotnet run -- --help";
+
+            var extras = options.Parse(args);
+            if(extras != null && extras.Any())
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Unrecognized options: {0}", string.Join(",", extras));
+                Console.WriteLine(helpPointer);
+                Console.ResetColor();
+                return null;                
+            }
+
             if (showHelp)
             {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Welcome to Avalanche!");
+                Console.ResetColor();
+                
                 options.WriteOptionDescriptions(Console.Out);
                 return null;
             }
             else if(string.IsNullOrEmpty(configFileLocation)
                     || !File.Exists(configFileLocation))
             {
-                Console.Error.WriteLine("Need to provide a valid config file location");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Need to provide a valid config file location");
+                Console.ResetColor();
+                Console.WriteLine(helpPointer);
                 return null;
             }
 
