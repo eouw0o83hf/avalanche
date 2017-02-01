@@ -25,6 +25,8 @@ namespace Avalanche.Runner
         private readonly IAvalancheRepository _avalanche;
         private readonly ExecutionParameters _parameters;
         
+        // todo: convert some of these to factories so we can safely parallelize
+        //       also make sure we don't cause weird interlocking issues on sqlite dbs
         public AvalancheRunner(ILogger<AvalancheRunner> logger, IGlacierGateway glacier,
                                ILightroomReader lightroom, IAvalancheRepository avalanche,
                                ExecutionParameters parameters)
@@ -53,6 +55,7 @@ namespace Avalanche.Runner
             
             await _glacier.AssertVaultExists(_parameters.Glacier.VaultName);
             
+            // todo: parallelize this if it improves uploads (not sure if it will)
             var index = 0;
             foreach(var f in filteredPictures)
             {

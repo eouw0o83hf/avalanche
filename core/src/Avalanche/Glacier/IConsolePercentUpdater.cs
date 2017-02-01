@@ -13,6 +13,7 @@ namespace Avalanche.Glacier
     // else is wired together and mostly working.
     public class ConsolePercentUpdater : IConsolePercentUpdater
     {
+        // todo: make this not stupid
         public void UpdatePercentage(string file, int percent)
         {
             Console.WriteLine($"{file} is at {percent}%");
