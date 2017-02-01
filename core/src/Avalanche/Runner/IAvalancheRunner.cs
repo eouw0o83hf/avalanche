@@ -43,6 +43,8 @@ namespace Avalanche.Runner
             var catalogId = _lightroom.GetCatalogId();
             var allPictures = _lightroom.GetAllPictures();
             var filteredPictures = allPictures
+                                    .GroupBy(a => a.FileId)
+                                    .Select(a => a.First())
                                     .Where(a => a.LibraryCount > 0 
                                                 && !_avalanche.FileIsArchived(a.FileId))
                                     .ToList();

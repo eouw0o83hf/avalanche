@@ -44,6 +44,38 @@ namespace Avalanche.Tests.Runner
         }
 
         [Fact]
+        public async Task Archiving_GivenPicturesAndExisting_GroupsByFile()
+        {
+            var pictures = Enumerable
+                            .Range(0, 10)
+                            .Select(a => new PictureModel
+                                    {
+                                        AbsolutePath = $"/dev/null/image{a}.jpg",
+                                        FileName = $"{a}.jpg",
+                                        FileId = Guid.NewGuid(),
+                                        ImageId = Guid.NewGuid(),
+                                        LibraryCount = 1
+                                    })
+                            .ToList();
+            pictures.AddRange(pictures);
+
+            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
+            _lightroom.GetAllPictures().Returns(pictures);
+            _avalanche.FileIsArchived(Arg.Any<Guid>()).Returns(false);
+
+            var calledFileIds = new HashSet<Guid>();
+            _glacier.SaveImage(Arg.Do<PictureModel>(a => calledFileIds.Add(a.FileId)), Arg.Any<string>())
+                    .Returns(new ArchivedPictureModel());
+
+            await _sut.Run();
+
+            var expectedArchivedFileIds = pictures
+                                            .GroupBy(a => a.FileId)
+                                            .Select(a => a.Key);
+            Assert.Equal(expectedArchivedFileIds, calledFileIds);
+        }
+
+        [Fact]
         public async Task Archiving_GivenPicturesAndExisting_FiltersOnLibraryCount()
         {
             var pictures = Enumerable
