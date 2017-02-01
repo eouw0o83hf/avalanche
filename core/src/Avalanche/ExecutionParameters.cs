@@ -5,13 +5,24 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Framework.Logging;
 
 namespace Avalanche
 {
+    public class CommandLineParameters
+    {
+        public string ConfigFileLocation { get; set; }
+        public bool TestMode { get; set; }
+    }
+
     public class ExecutionParameters
     {
         public GlacierParameters Glacier { get; set; }
         public AvalancheParameters Avalanche { get; set; }
+        
+        // This is read from the command line, the rest is stored in a config file
+        [JsonIgnore]
+        public CommandLineParameters CommandLineParameters { get; set; }
 
         public IEnumerable<string> GetValidationErrors()
         {
@@ -21,13 +32,15 @@ namespace Avalanche
 
     public static class ExecutionParameterHelpers
     {
-        public static string ResolveConfigFileLocation(string[] args)
+        public static CommandLineParameters ResolveConfigFileLocation(string[] args)
         {
             var showHelp = false;
+            var testMode = false;
             string configFileLocation = null;
             var options = new OptionSet
             {
                 { "c=|config-file=", "REQUIRED: Path/File for Avalanche Config File", a => configFileLocation = a.Trim('"') },
+                { "t=|test", "Run in test mode without pushing any files to AWS", a => testMode = a != null },
                 { "h|help", "Help", a => showHelp = a != null }
             };
 
@@ -40,19 +53,27 @@ namespace Avalanche
                     || !File.Exists(configFileLocation))
             {
                 Console.Error.WriteLine("Need to provide a valid config file location");
+                return null;
             }
 
-            return configFileLocation;
+            return new CommandLineParameters
+            {
+                ConfigFileLocation = configFileLocation,
+                TestMode = testMode
+            };
         }
 
-        public static ExecutionParameters LoadExecutionParameters(string configFileLocation)
+        public static ExecutionParameters LoadExecutionParameters(CommandLineParameters parameters)
         {
-            var serialized = File.ReadAllText(configFileLocation);
+            var serialized = File.ReadAllText(parameters.ConfigFileLocation);
             if(serialized.Contains("CatalongFilePath"))
             {
                 throw new Exception("There was a typo in the original config code. Please rename `CatalongFilePath` to `CatalogFilePath` in your config file.");
             }
-            return JsonConvert.DeserializeObject<ExecutionParameters>(serialized);
+
+            var response = JsonConvert.DeserializeObject<ExecutionParameters>(serialized);
+            response.CommandLineParameters = parameters;
+            return response;
         }
     }
 

@@ -1,12 +1,9 @@
-using System;
-using System.Linq;
 using Xunit;
 using StructureMap;
 using Avalanche.Glacier;
 using Microsoft.Framework.Logging;
 using Amazon;
 using Amazon.Glacier;
-using System.IO;
 using Avalanche.Lightroom;
 using Avalanche.State;
 using Avalanche.Runner;
@@ -34,6 +31,9 @@ namespace Avalanche.Tests
                     AccessKeyId = "key id",
                     SecretAccessKey = "such secret very wow",
                     Region = RegionEndpoint.USEast1.SystemName
+                },
+                CommandLineParameters = new CommandLineParameters
+                {
                 }
             };
             

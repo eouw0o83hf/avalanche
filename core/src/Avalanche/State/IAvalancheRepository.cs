@@ -2,6 +2,7 @@ using System;
 using System.Data;
 using Avalanche.Models;
 using Microsoft.Data.Sqlite;
+using Microsoft.Framework.Logging;
 
 namespace Avalanche.State
 {
@@ -27,14 +28,21 @@ namespace Avalanche.State
         //-- autodetect vaults
         //-- pull vaultid
 
+        private readonly ILogger<AvalancheRepository> _logger;
         private readonly IDbConnection _db;
+
+        // In test mode, no information should be persisted
+        private readonly bool _testMode;
 
         // For non-test applications, `db` is expected
         // to be a SqliteConnection, since the Lightroom
         // catalog is a sqlite database
-        public AvalancheRepository(IDbConnection db)
+        public AvalancheRepository(ILogger<AvalancheRepository> logger, IDbConnection db, bool testMode)
         {
             _db = db;
+            _testMode = testMode;
+            _logger = logger;
+
             AssertDatabaseExists();
         }
 
@@ -102,6 +110,12 @@ CREATE TABLE IF NOT EXISTS Pictures
 
         private void AssertDatabaseExists()
         {
+            if(_testMode)
+            {
+                _logger.LogInformation("Not asserting Avalanche DB since we're in test mode");
+                return;
+            }
+            
             ExecuteNonQuery(CreateCatalogsCommand);
             ExecuteNonQuery(CreateVaultsCommand);
             ExecuteNonQuery(CreatePicturesCommand);
@@ -149,6 +163,11 @@ VALUES
 
         private int CreateVault(string name, string region)
         {
+            if(_testMode)
+            {
+                return -1;
+            }
+            
             using (var command = _db.CreateCommand())
             {                
                 command.CommandText = InsertVault;
@@ -204,6 +223,11 @@ VALUES
 
         private int CreateCatalog(string filename, string uniqueId)
         {
+            if(_testMode)
+            {
+                return -1;
+            }
+            
             using (var command = _db.CreateCommand())
             {
                 command.CommandText = InsertCatalog;
@@ -272,6 +296,11 @@ VALUES
 
         public void MarkFileAsArchived(ArchivedPictureModel model, string vaultName, string vaultRegion, string catalogFilename, string catalogUniqueId)
         {
+            if(_testMode)
+            {
+                return;
+            }
+            
             var vaultId = GetOrCreateVaultId(vaultName, vaultRegion);
             var catalogId = GetOrCreateCatalogId(catalogFilename, catalogUniqueId);
 

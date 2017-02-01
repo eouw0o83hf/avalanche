@@ -1,4 +1,5 @@
-﻿using Avalanche.Runner;
+﻿using System;
+using Avalanche.Runner;
 using StructureMap;
 
 namespace Avalanche
@@ -7,13 +8,29 @@ namespace Avalanche
     {
         public static void Main(string[] args)
         {
-            var filename = ExecutionParameterHelpers.ResolveConfigFileLocation(args);
-            if(filename == null)
+            var commandConfig = ExecutionParameterHelpers.ResolveConfigFileLocation(args);
+            if(commandConfig == null)
             {
                 return;
             }
+            
+            var config = ExecutionParameterHelpers.LoadExecutionParameters(commandConfig);
 
-            var config = ExecutionParameterHelpers.LoadExecutionParameters(filename);
+
+            // Make announcements before we launch everything
+            if(commandConfig.TestMode)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Test mode was flagged, so nothing will be persisted.");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("This thing is armed and dangerous, about to send files. Hit enter to continue.");
+                Console.ReadLine();
+            }
+            Console.ResetColor();
+
 
             using(var container = new Container())
             {

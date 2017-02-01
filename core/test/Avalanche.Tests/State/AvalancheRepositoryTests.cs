@@ -3,27 +3,50 @@ using System.Data;
 using Xunit;
 using Avalanche.State;
 using NSubstitute;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Data.Sqlite;
 using Avalanche.Models;
 using System.Net;
+using Microsoft.Framework.Logging;
 
 namespace Avalanche.Tests.State
 {
-    public class AvalancheRepositoryTests
+    public abstract class AvalancheRepositoryTestBase
     {
-        private readonly IDbConnection _db;
-        private readonly AvalancheRepository _sut;
+        protected readonly ILogger<AvalancheRepository> _logger;
+        protected readonly IDbConnection _db;
+        protected readonly AvalancheRepository _sut;
 
-        public AvalancheRepositoryTests()
+        protected AvalancheRepositoryTestBase(bool testMode)
         {
-            // In-memory sqlite db
-            _db = new SqliteConnection("Data Source=:memory:");
-            _db.Open();
-            _sut = new AvalancheRepository(_db);
-        }
+            _logger = Substitute.For<ILogger<AvalancheRepository>>();
+            
+            // If this test class gets much more complex, this base class
+            // should probably be abandoned and the test-mode vs. non-test-mode
+            // classes can just diverge entirely
+            if(testMode)
+            {
+                var command = Substitute.For<IDbCommand>();
+                // The methods that read will be tested with 0-count results
+                command.ExecuteScalar().Returns(0L);
+                
+                _db = Substitute.For<IDbConnection>();
+                _db.CreateCommand().Returns(command);
+            }
+            else
+            {
+                // In-memory sqlite db
+                _db = new SqliteConnection("Data Source=:memory:");
+                _db.Open();
+            }
 
+            _sut = new AvalancheRepository(_logger, _db, testMode);
+        }
+    }
+
+    public class NonTestModeAvalancheRepositoryTests : AvalancheRepositoryTestBase
+    {
+        public NonTestModeAvalancheRepositoryTests() : base(false) { }
+        
         [Fact]
         public void OnStartup_GivenEmptyDatabase_CreatesTables()
         {
@@ -51,7 +74,7 @@ namespace Avalanche.Tests.State
         {
             // The schema will already be populated by the constructor, so
             // just creating a new test object will trigger this test condition.
-            var duplicate = new AvalancheRepository(_db);
+            var duplicate = new AvalancheRepository(_logger, _db, false);
 
             // xunit doesn't have an Assert.DoesNotThrow(), so there's no actual
             // assertion in this test. The failure condition is an exception.
@@ -136,6 +159,43 @@ namespace Avalanche.Tests.State
             _sut.MarkFileAsArchived(archiveModel, "vault", "region", "catalog", "catalogUniqueId");
             var result = _sut.FileIsArchived(archiveModel.Picture.FileId);
             Assert.True(result);
+        }
+    }
+
+    public class TestModeAvalancheRepositoryTests : AvalancheRepositoryTestBase
+    {
+        public TestModeAvalancheRepositoryTests() : base(true) { }
+
+        [Fact]
+        public void OnStartup_GivenEmptyDatabase_DoesNotCreateTables()
+        {
+            _db.DidNotReceiveWithAnyArgs().CreateCommand();
+        }
+
+        [Fact]
+        public void GetOrCreateVault_DoesNotCreateNewVault()
+        {
+            _sut.GetOrCreateVaultId("name", "region");
+            // A command will be created once for the read, but
+            // a second time for the write. Make sure we only get one.
+            _db.Received(1).CreateCommand();
+        }
+
+        [Fact]
+        public void GetOrCreateCatalog_DoesNotCreateNewCatalog()
+        {
+            _sut.GetOrCreateCatalogId("filename", "uniqueid");
+            // A command will be created once for the read, but
+            // a second time for the write. Make sure we only get one.
+            _db.Received(1).CreateCommand();
+        }
+
+        [Fact]
+        public void MakrFileAsArchive_DoesNothing()
+        {
+            _sut.MarkFileAsArchived(null, null, null, null, null);
+            // This time, the DB shouldn't have been hit at all
+            _db.DidNotReceiveWithAnyArgs().CreateCommand();
         }
     }
 }

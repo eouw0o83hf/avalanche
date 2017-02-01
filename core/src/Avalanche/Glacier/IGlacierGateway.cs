@@ -33,16 +33,18 @@ namespace Avalanche.Glacier
         private readonly IArchiveProvider _archiveProvider;
         
         private readonly string _accountId;
+        private readonly bool _testMode;
 
         public GlacierGateway(IAmazonGlacier glacier, ILogger<GlacierGateway> logger,
                               IConsolePercentUpdater updater, IArchiveProvider archiveProvider,
-                              string accountId)
+                              string accountId, bool testMode)
         {
             _glacier = glacier;
             _logger = logger;
             _updater = updater;
             _archiveProvider = archiveProvider;
             _accountId = accountId;
+            _testMode = testMode;
         }
 
         public async Task AssertVaultExists(string vaultName)
@@ -58,13 +60,20 @@ namespace Avalanche.Glacier
                 return;
             }
 
-            _logger.LogInformation("Creating vault {0}", vaultName);
-            var result = await _glacier.CreateVaultAsync(new CreateVaultRequest
+            if(_testMode)
             {
-                AccountId = _accountId,
-                VaultName = vaultName
-            });
-            _logger.LogDebug("Vault creation result: {0}", result.HttpStatusCode);
+                _logger.LogInformation("Would create vault {0}, but we're in test mode so I'm not", vaultName);
+            }
+            else
+            {
+                _logger.LogInformation("Creating vault {0}", vaultName);
+                var result = await _glacier.CreateVaultAsync(new CreateVaultRequest
+                {
+                    AccountId = _accountId,
+                    VaultName = vaultName
+                });
+                _logger.LogDebug("Vault creation result: {0}", result.HttpStatusCode);
+            }
         }
 
         public async Task<ArchivedPictureModel> SaveImage(PictureModel picture, string vaultName = "Pictures")
@@ -83,16 +92,39 @@ namespace Avalanche.Glacier
 
             using (var fileStream = await _archiveProvider.GetFileStream(filename, json))
             {
-                _logger.LogInformation("Uploading {0}, {1} bytes", filename, fileStream.Length);
-
                 var hash = TreeHashGenerator.CalculateTreeHash(fileStream);
                 fileStream.Position = 0;
 
                 _updater.UpdatePercentage(filename, 0);
-                var result = await _glacier.UploadArchiveAsync(new UploadArchiveRequest
+                var result = await DoGlacierUpload(json, vaultName, fileStream, hash, filename);
+
+                return new ArchiveModel
+                {
+                    ArchiveId = result.ArchiveId,
+                    Status = result.HttpStatusCode,
+                    Location = result.Location,
+                    Metadata = JsonConvert.SerializeObject(result.ResponseMetadata),
+                    PostedTimestamp = DateTime.UtcNow
+                };
+            }
+        }
+
+        // This is pulled into its own method to make the test-mode-bypass logic
+        // simpler and very straightforward
+        private async Task<UploadArchiveResponse> DoGlacierUpload(string metadataJson, string vaultName, Stream fileStream, string hash, string filename)
+        {
+            if(_testMode)
+            {
+                _logger.LogInformation("Would upload {0} to AWS, but we're in test mode so I'm not", filename);
+                return new UploadArchiveResponse();
+            }
+            
+            _logger.LogInformation("Uploading {0} to AWS, {1} bytes", filename, fileStream.Length);
+
+            var result = await _glacier.UploadArchiveAsync(new UploadArchiveRequest
                 {
                     AccountId = _accountId,
-                    ArchiveDescription = json,
+                    ArchiveDescription = metadataJson,
                     VaultName = GetTrimmedVaultName(vaultName),
                     Body = fileStream,
                     Checksum = hash,
@@ -102,20 +134,10 @@ namespace Avalanche.Glacier
                         })
                 });
 
-                _logger.LogInformation("File uploaded: {0}, archive ID: {1}", result.HttpStatusCode, result.ArchiveId);
+            _logger.LogInformation("File uploaded: {0}, archive ID: {1}", result.HttpStatusCode, result.ArchiveId);
 
-                var response = new ArchiveModel
-                {
-                    ArchiveId = result.ArchiveId,
-                    Status = result.HttpStatusCode,
-                    Location = result.Location,
-                    Metadata = JsonConvert.SerializeObject(result.ResponseMetadata),
-                    PostedTimestamp = DateTime.UtcNow
-                };
-
-                return response;
-            }
-        }        
+            return result;
+        }
 
         public async Task BeginVaultInventoryRetrieval(string vaultName, string notificationTargetTopicId)
         {

@@ -14,17 +14,20 @@ using Amazon.Runtime;
 
 namespace Avalanche.Tests.Glacier
 {
-    public class GlacierGatewayTests
+    // There is very divergent behavior in some methods depending on whether or not
+    // test mode is activated. Since we wire up the sut in context, it's best to just
+    // subclass out the test-mode-ness
+    public abstract class GlacierGatewayTestBase
     {
-        private readonly ILogger<GlacierGateway> _logger;
-        private readonly IAmazonGlacier _glacier;
-        private readonly IConsolePercentUpdater _updater;
-        private readonly IArchiveProvider _archiveProvider;
+        protected readonly ILogger<GlacierGateway> _logger;
+        protected readonly IAmazonGlacier _glacier;
+        protected readonly IConsolePercentUpdater _updater;
+        protected readonly IArchiveProvider _archiveProvider;
 
-        private readonly GlacierGateway _sut;
-        private const string PreexistingVaultName = "pre-existing vault name";
+        protected readonly GlacierGateway _sut;
+        protected const string PreexistingVaultName = "pre-existing vault name";
         
-        public GlacierGatewayTests()
+        protected GlacierGatewayTestBase(bool testMode)
         {
             _logger = Substitute.For<ILogger<GlacierGateway>>();
             _glacier = Substitute.For<IAmazonGlacier>();
@@ -36,7 +39,7 @@ namespace Avalanche.Tests.Glacier
             var bytes = Enumerable.Range(0, 100).Select(a => (byte)a).ToArray();
             _archiveProvider.GetFileStream(Arg.Any<string>(), Arg.Any<string>()).Returns(new MemoryStream(bytes));
 
-            _sut = new GlacierGateway(_glacier, _logger, _updater, _archiveProvider, null);
+            _sut = new GlacierGateway(_glacier, _logger, _updater, _archiveProvider, null, testMode);
 
             _glacier.ListVaultsAsync(Arg.Any<ListVaultsRequest>())
                     .Returns(new ListVaultsResponse
@@ -55,6 +58,11 @@ namespace Avalanche.Tests.Glacier
                         HttpStatusCode = HttpStatusCode.OK
                     });
         }
+    }
+
+    public class NonTestModeGlacierGatewayTestBase : GlacierGatewayTestBase
+    {
+        public NonTestModeGlacierGatewayTestBase() : base(false) { }
 
         [Fact]
         public async Task AssertVaultExists_GivenExistingVault_DoesNotCreate()
@@ -115,6 +123,31 @@ namespace Avalanche.Tests.Glacier
 
             await _sut.SaveImage(picture);
             await _glacier.ReceivedWithAnyArgs().UploadArchiveAsync(Arg.Any<UploadArchiveRequest>());
+        }
+    }
+
+    public class TestModeGlacierGatewayTestBase : GlacierGatewayTestBase
+    {
+        public TestModeGlacierGatewayTestBase() : base(true) { }
+
+        [Fact]
+        public async Task AssertVaultExists_GivenEmptyVault_DoesNotCreateNew()
+        {
+            await _sut.AssertVaultExists("new vault name");
+            await _glacier.DidNotReceiveWithAnyArgs().CreateVaultAsync(Arg.Any<CreateVaultRequest>());
+        }
+
+        [Fact]
+        public async Task SaveFileWithMetadata_DoesNotPushToAws()
+        {
+            var picture = new PictureModel
+            {
+                AbsolutePath = "/dev/null",
+                FileName = "notafile.jpg"
+            };
+
+            await _sut.SaveImage(picture);
+            await _glacier.DidNotReceiveWithAnyArgs().UploadArchiveAsync(Arg.Any<UploadArchiveRequest>());
         }
     }
 }

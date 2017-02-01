@@ -47,7 +47,8 @@ namespace Avalanche
                 _.For<IConsolePercentUpdater>().Use<ConsolePercentUpdater>().Singleton();
                 _.For<IArchiveProvider>().Use<ArchiveProvider>().Singleton();
                 _.For<IGlacierGateway>().Use<GlacierGateway>().Singleton()
-                        .Ctor<string>("accountId").Is(_executionParameters.Glacier.AccountId);
+                        .Ctor<string>("accountId").Is(_executionParameters.Glacier.AccountId)
+                        .Ctor<bool>("testMode").Is(_executionParameters.CommandLineParameters.TestMode);
             });
 
             // Lightroom
@@ -69,7 +70,8 @@ namespace Avalanche
                 var avalancheDbInstanceName = "avalancheDbInstanceName";
                 
                 _.For<IAvalancheRepository>().Use<AvalancheRepository>().Transient()
-                        .Ctor<IDbConnection>().IsNamedInstance(avalancheDbInstanceName);
+                        .Ctor<IDbConnection>().IsNamedInstance(avalancheDbInstanceName)
+                        .Ctor<bool>("testMode").Is(_executionParameters.CommandLineParameters.TestMode);
                 _.For<IDbConnection>().Use<SqliteConnection>().Transient()
                         .Named(avalancheDbInstanceName)
                         .Ctor<string>("connectionString").Is($"DataSource={_executionParameters.Avalanche.AvalancheFilePath}")
