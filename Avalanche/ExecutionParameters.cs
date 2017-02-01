@@ -6,8 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Avalanche
 {
@@ -19,6 +17,8 @@ namespace Avalanche
         public AvalancheParameters Avalanche { get; set; }
 
         public string ConfigFileLocation { get; set; }
+
+        public bool DryRun { get; set; }
 
         public void Initialize(string[] args)
         {
@@ -167,6 +167,7 @@ namespace Avalanche
     {
         public string CatalongFilePath { get; set; }
         public string AvalancheFilePath { get; set; }
+        public string AdobeCollectionName { get; set; }
 
         public IEnumerable<string> GetValidationErrors()
         {

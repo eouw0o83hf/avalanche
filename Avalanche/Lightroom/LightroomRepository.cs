@@ -46,13 +46,13 @@ WHERE
             }
         }
 
-        public ICollection<PictureModel> GetAllPictures()
+        public ICollection<PictureModel> GetAllPictures(string collectionName = null)
         {
             var result = new List<PictureModel>();
             using(var connection = OpenNewConnection())
             {
                 var command = connection.CreateCommand();
-                command.CommandText = @"
+                command.CommandText = $@"
 SELECT
 	r.absolutePath AS 'AbsolutePath',
 	r.relativePathFromCatalog AS 'PathFromCatalog',
@@ -60,6 +60,7 @@ SELECT
 	f.idx_filename AS 'Filename',    
 	SUM(CASE WHEN i.id_local IS NOT NULL THEN 1 ELSE 0 END) AS 'CollectionCount',
 	m.id_global AS 'ImageId',
+    m.copyName AS 'CopyName',
 	f.id_global AS 'FileId'
 FROM
 	AgLibraryFile f
@@ -68,6 +69,7 @@ FROM
 	LEFT OUTER JOIN Adobe_images m ON f.id_local = m.rootFile
 	LEFT OUTER JOIN AgLibraryCollectionImage i ON m.id_local = i.image
 	LEFT OUTER JOIN AgLibraryCollection c ON i.collection = c.id_local
+{(string.IsNullOrWhiteSpace(collectionName) ? "" : $"WHERE c.name = '{collectionName}'")}
 GROUP BY
 	r.absolutePath,
 	r.relativePathFromCatalog,
@@ -76,7 +78,6 @@ GROUP BY
 	m.id_global,
 	f.id_global
 ";
-
                 var reader = command.ExecuteReader(CommandBehavior.CloseConnection);
                 while (reader.Read())
                 {
@@ -94,16 +95,35 @@ GROUP BY
             var relativeRoot = record["PathFromCatalog"] as string;
             var absoluteRoot = record["AbsolutePath"] as string;
             var libraryPath = record["PathFromLibraryRoot"] as string;
+            var fileName = record["Filename"] as string;
+            var imageId = record["ImageId"] as string;
+            var copyName = record["CopyName"] as string;
+            var fileId = record["FileId"] as string;
+            var collectionCount = Convert.ToInt32(record["CollectionCount"]);
 
             return new PictureModel
             {
                 AbsolutePath = Path.Combine(absoluteRoot, libraryPath),
                 CatalogRelativePath = relativeRoot == null ? "NULL" : Path.Combine(relativeRoot, libraryPath),
-                FileName = record.GetString(3),
-                ImageId = record.GetGuid(5),
-                FileId = record.GetGuid(6),
-                LibraryCount = record.GetInt32(4)
+                FileName = fileName,
+                ImageId = Guid.Parse(imageId),
+                CopyName = copyName,
+                FileId = Guid.Parse(fileId),
+                LibraryCount = collectionCount
             };
+        }
+
+        public int MarkAsArchived(ArchiveModel archive, PictureModel pictureModel)
+        {
+            using (var connection = OpenNewConnection())
+            {
+                var command = connection.CreateCommand();
+                command.CommandText = $"UPDATE Adobe_images SET copyName = '{archive.ArchiveId}' where id_global = '{pictureModel.ImageId.ToString().ToUpperInvariant()}'";
+
+                var result = command.ExecuteNonQuery();            
+                connection.Close();
+                return result;
+            }
         }
     }
 }

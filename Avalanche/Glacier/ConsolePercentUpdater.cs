@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Avalanche.Glacier
@@ -29,7 +26,7 @@ namespace Avalanche.Glacier
                             {
                                 Console.Write("\b");
                             }
-                            var output = string.Format("{0}%", PercentDone);
+                            var output = $"{PercentDone}%";
                             lastWrittenLength = output.Length;
                             Console.Write(output);
 
