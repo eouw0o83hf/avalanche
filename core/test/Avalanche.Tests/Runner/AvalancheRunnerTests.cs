@@ -44,6 +44,26 @@ namespace Avalanche.Tests.Runner
         }
 
         [Fact]
+        public async Task Archiving_BeforeUploadingFiles_AssertsVaultExists()
+        {
+            // Cause the actual image call to fail hard and stop execution.
+            // This will allow us to assert that the call to vault assertion
+            // occurred prior to attempts to save images.
+            _glacier.SaveImage(Arg.Any<PictureModel>(), Arg.Any<string>()).Returns(SaveImageFails);
+
+            try
+            {
+                await _sut.Run();
+            }
+            catch
+            {
+                // This will fail because of the wireup, nothing to see here
+            }
+
+            await _glacier.ReceivedWithAnyArgs(1).AssertVaultExists(Arg.Any<string>());
+        }
+
+        [Fact]
         public async Task Archiving_GivenPicturesAndExisting_GroupsByFile()
         {
             var pictures = Enumerable

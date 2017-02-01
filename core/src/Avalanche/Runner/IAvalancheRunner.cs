@@ -51,6 +51,8 @@ namespace Avalanche.Runner
 
             _logger.LogInformation("Backing up {0} images", filteredPictures.Count);
             
+            await _glacier.AssertVaultExists(_parameters.Glacier.VaultName);
+            
             var index = 0;
             foreach(var f in filteredPictures)
             {
