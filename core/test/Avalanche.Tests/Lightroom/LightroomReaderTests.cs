@@ -38,7 +38,6 @@ namespace Avalanche.Tests.Lightroom
             reader.Read().Returns(a => responseEnumerator.MoveNext());
             reader[Arg.Any<string>()].ReturnsForAnyArgs(a => responseEnumerator.Current[a.Arg<string>()]);
             reader.GetString(Arg.Any<int>()).ReturnsForAnyArgs(a => responseEnumerator.Current[a.Arg<int>()]);
-            reader.GetGuid(Arg.Any<int>()).ReturnsForAnyArgs(a => responseEnumerator.Current[a.Arg<int>()]);
             reader.GetInt32(Arg.Any<int>()).ReturnsForAnyArgs(a => responseEnumerator.Current[a.Arg<int>()]);
 
             var command = Substitute.For<IDbCommand>();
@@ -80,8 +79,8 @@ namespace Avalanche.Tests.Lightroom
             item["PathFromLibraryRoot"] = "raw";
             item[3] = "image.jpg";
             item[4] = 7;
-            item[5] = imageId;
-            item[6] = fileId;
+            item[5] = imageId.ToString();
+            item[6] = fileId.ToString();
             return item;            
         }
 

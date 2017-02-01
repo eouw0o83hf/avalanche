@@ -102,8 +102,8 @@ GROUP BY
                 AbsolutePath = Path.Combine(absoluteRoot, libraryPath),
                 CatalogRelativePath = relativeRoot == null ? "NULL" : Path.Combine(relativeRoot, libraryPath),
                 FileName = record.GetString(3),
-                ImageId = record.GetGuid(5),
-                FileId = record.GetGuid(6),
+                ImageId = record.GetString(5).ParseGuid().Value,
+                FileId = record.GetString(6).ParseGuid().Value,
                 LibraryCount = record.GetInt32(4)
             };
         }

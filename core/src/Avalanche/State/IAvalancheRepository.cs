@@ -110,12 +110,6 @@ CREATE TABLE IF NOT EXISTS Pictures
 
         private void AssertDatabaseExists()
         {
-            if(_testMode)
-            {
-                _logger.LogInformation("Not asserting Avalanche DB since we're in test mode");
-                return;
-            }
-            
             ExecuteNonQuery(CreateCatalogsCommand);
             ExecuteNonQuery(CreateVaultsCommand);
             ExecuteNonQuery(CreatePicturesCommand);

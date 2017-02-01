@@ -62,6 +62,7 @@ namespace Avalanche.Runner
                     try
                     {
                         archive = await _glacier.SaveImage(f, _parameters.Glacier.VaultName);
+                        break;
                     }
                     catch(Exception ex)
                     {

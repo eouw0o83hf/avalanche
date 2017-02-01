@@ -166,15 +166,18 @@ namespace Avalanche.Tests.State
     {
         public TestModeAvalancheRepositoryTests() : base(true) { }
 
+        // The tables need to be there for the application to seemingly function at all,
+        // so allow it to create them. No harm in adding worthless tables to an empty file
         [Fact]
-        public void OnStartup_GivenEmptyDatabase_DoesNotCreateTables()
+        public void OnStartup_GivenEmptyDatabase_DoesCreateTables()
         {
-            _db.DidNotReceiveWithAnyArgs().CreateCommand();
+            _db.ReceivedWithAnyArgs().CreateCommand();
         }
 
         [Fact]
         public void GetOrCreateVault_DoesNotCreateNewVault()
         {
+            _db.ClearReceivedCalls();
             _sut.GetOrCreateVaultId("name", "region");
             // A command will be created once for the read, but
             // a second time for the write. Make sure we only get one.
@@ -184,6 +187,7 @@ namespace Avalanche.Tests.State
         [Fact]
         public void GetOrCreateCatalog_DoesNotCreateNewCatalog()
         {
+            _db.ClearReceivedCalls();
             _sut.GetOrCreateCatalogId("filename", "uniqueid");
             // A command will be created once for the read, but
             // a second time for the write. Make sure we only get one.
@@ -193,6 +197,7 @@ namespace Avalanche.Tests.State
         [Fact]
         public void MakrFileAsArchive_DoesNothing()
         {
+            _db.ClearReceivedCalls();
             _sut.MarkFileAsArchived(null, null, null, null, null);
             // This time, the DB shouldn't have been hit at all
             _db.DidNotReceiveWithAnyArgs().CreateCommand();
