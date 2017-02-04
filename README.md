@@ -10,11 +10,13 @@ Avalanche runs on .NET Core, so first download and install the latest version.
 To execute, `cd` into `src/Avalanche` in a terminal, then execute `dotnet run -- [params]` - the `--` after `run` is there to differentiat parameters sent to the runtime vs those sent to the application.
 
 ## Parameters
-`-h`		Help
-`-c`		Configuration file path. Required to start. **Required.**
-`-t`		Test mode - reads files and executes without writing to Glacier or Avalanche state.
+
+    `-h`	 	Help
+    `-c`		Configuration file path. Required to start. **Required.**
+    `-t`		Test mode - reads files and executes without writing to Glacier or Avalanche state.
 
 Example:
+
     $ dotnet run -- -c=/user/myuser/dropbox/avalancheconfig.json
 
 ## JSON Config File
@@ -23,6 +25,7 @@ Example:
 Currently, the configuration file can handle one Lightroom Catalog at a time. This will be addressed in a future release.
 
 Format:
+
 	{
 		"Glacier":
 		{	
