@@ -1,0 +1,10 @@
+language: csharp
+script:
+    - cd src/Avalanche
+    - dotnet restore
+    - dotnet build
+    - cd ../../test/Avalanche.Tests
+    - dotnet restore
+    - dotnet build
+    - dotnet test
+    
