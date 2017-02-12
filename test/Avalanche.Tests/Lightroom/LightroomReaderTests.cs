@@ -37,8 +37,6 @@ namespace Avalanche.Tests.Lightroom
             // the first response of `true` gets taken as the One Response for this method
             reader.Read().Returns(a => responseEnumerator.MoveNext());
             reader[Arg.Any<string>()].ReturnsForAnyArgs(a => responseEnumerator.Current[a.Arg<string>()]);
-            reader.GetString(Arg.Any<int>()).ReturnsForAnyArgs(a => responseEnumerator.Current[a.Arg<int>()]);
-            reader.GetInt32(Arg.Any<int>()).ReturnsForAnyArgs(a => responseEnumerator.Current[a.Arg<int>()]);
 
             var command = Substitute.For<IDbCommand>();
             command.ExecuteReader(Arg.Any<CommandBehavior>()).Returns(reader);
@@ -74,13 +72,13 @@ namespace Avalanche.Tests.Lightroom
         private static IDictionary<object, object> GetResultItem(Guid imageId, Guid fileId)
         {
             var item = new Dictionary<object, object>();
-            item["PathFromCatalog"] = "lightroom";
             item["AbsolutePath"] = "/dev/null";
+            item["PathFromCatalog"] = "lightroom";
             item["PathFromLibraryRoot"] = "raw";
-            item[3] = "image.jpg";
-            item[4] = 7;
-            item[5] = imageId.ToString();
-            item[6] = fileId.ToString();
+            item["Filename"] = "image.jpg";
+            item["CollectionCount"] = 7;
+            item["ImageId"] = imageId.ToString();
+            item["FileId"] = fileId.ToString();
             return item;            
         }
 
