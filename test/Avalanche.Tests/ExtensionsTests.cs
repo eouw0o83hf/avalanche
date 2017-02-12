@@ -6,6 +6,12 @@ namespace Avalanche.Tests
     public class ExtensionsTests
     {
         [Fact]
+        public void Fail()
+        {
+            Assert.False(true);
+        }
+        
+        [Fact]
         public void ParseGuid_Success() 
         {
             var guid = Guid.NewGuid();
