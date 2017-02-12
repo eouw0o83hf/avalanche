@@ -2,6 +2,8 @@
 using Avalanche.Runner;
 using StructureMap;
 
+this is not valid c#.
+
 namespace Avalanche
 {
     public class Program
