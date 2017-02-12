@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/eouw0o83hf/avalanche.svg?branch=master)](https://travis-ci.org/eouw0o83hf/avalanche)
+
 `avalanche`
 =========
 `avalanche` is a highly specialized agent for backing up photos from Adobe Lightroom to Amazon Glacier. Given a Lightroom catalog, `avalanche` determines which files have been added to any collections and backs those files up to Amazon Glacier.
