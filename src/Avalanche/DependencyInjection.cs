@@ -33,6 +33,8 @@ namespace Avalanche
                 _.For<ExecutionParameters>().Use(_executionParameters);
                 _.For(typeof(ILogger<>)).Use(typeof(Logger<>)).Singleton();
                 _.For<ILoggerFactory>().Use(loggerFactory).Singleton();
+                _.For(typeof(IInjectionFactory<>)).Use(typeof(InjectionFactory<>)).Singleton();
+                _.For<IContainer>().Use(container);
             });
             
             // Glacier
