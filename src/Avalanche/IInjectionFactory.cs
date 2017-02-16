@@ -28,4 +28,30 @@ namespace Avalanche
             _container.Release(item);
         }
     }
+
+    public static class InjectionFactoryExtensions
+    {
+        public static InjectionFactoryObjectWrapper<T> CreateWrapper<T>(this IInjectionFactory<T> factory)
+        {
+            var item = factory.Create();
+            return new InjectionFactoryObjectWrapper<T>(item, factory);
+        }
+    }
+
+    public class InjectionFactoryObjectWrapper<T> : IDisposable
+    {
+        private readonly IInjectionFactory<T> _factory;
+        public readonly T Item;
+
+        public InjectionFactoryObjectWrapper(T item, IInjectionFactory<T> factory)
+        {
+            Item = item;
+            _factory = factory;
+        }
+
+        void IDisposable.Dispose()
+        {
+            _factory.Destroy(Item);
+        }
+    }
 }
