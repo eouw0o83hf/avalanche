@@ -40,7 +40,7 @@ namespace Avalanche
             // Glacier
             container.Configure(_ => 
             {
-                _.For<IAmazonGlacier>().Use<AmazonGlacierClient>()
+                _.For<IAmazonGlacier>().Use<AmazonGlacierClient>().Singleton()
                         .Ctor<string>("awsAccessKeyId").Is(_executionParameters.Glacier.AccessKeyId)
                         .Ctor<string>("awsSecretAccessKey").Is(_executionParameters.Glacier.SecretAccessKey)
                         .Ctor<RegionEndpoint>("region").Is(_executionParameters.Glacier.GetRegion())

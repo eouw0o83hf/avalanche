@@ -22,6 +22,10 @@ namespace Avalanche.Tests.Runner
         private readonly IAvalancheRepository _avalanche;
         private readonly ExecutionParameters _parameters;
 
+        private readonly IInjectionFactory<IGlacierGateway> _glacierFactory;
+        private readonly IInjectionFactory<ILightroomReader> _lightroomFactory;
+        private readonly IInjectionFactory<IAvalancheRepository> _avalancheFactory;
+
         private readonly AvalancheRunner _sut;
 
         public AvalancheRunnerTests()
@@ -40,7 +44,16 @@ namespace Avalanche.Tests.Runner
                 }
             };
 
-            _sut = new AvalancheRunner(_logger, _glacier, _lightroom, _avalanche, _parameters);
+            _glacierFactory = Substitute.For<IInjectionFactory<IGlacierGateway>>();
+            _glacierFactory.Create().Returns(_glacier);
+
+            _lightroomFactory = Substitute.For<IInjectionFactory<ILightroomReader>>();
+            _lightroomFactory.Create().Returns(_lightroom);
+
+            _avalancheFactory = Substitute.For<IInjectionFactory<IAvalancheRepository>>();
+            _avalancheFactory.Create().Returns(_avalanche);
+
+            _sut = new AvalancheRunner(_logger, _glacierFactory, _lightroomFactory, _avalancheFactory, _parameters);
         }
 
         [Fact]
