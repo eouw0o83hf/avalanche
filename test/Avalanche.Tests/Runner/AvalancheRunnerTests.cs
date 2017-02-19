@@ -14,6 +14,9 @@ using NSubstitute.Core;
 
 namespace Avalanche.Tests.Runner
 {
+    // There's a decent bit of overlap in each of the test cases in this class, but
+    // they're all just different enough with varying degrees of overlay that it's
+    // a lot more readable to just have some code duplication.
     public class AvalancheRunnerTests
     {
         private readonly ILogger<AvalancheRunner> _logger;
@@ -21,6 +24,10 @@ namespace Avalanche.Tests.Runner
         private readonly ILightroomReader _lightroom;
         private readonly IAvalancheRepository _avalanche;
         private readonly ExecutionParameters _parameters;
+
+        private readonly IInjectionFactory<IGlacierGateway> _glacierFactory;
+        private readonly IInjectionFactory<ILightroomReader> _lightroomFactory;
+        private readonly IInjectionFactory<IAvalancheRepository> _avalancheFactory;
 
         private readonly AvalancheRunner _sut;
 
@@ -40,7 +47,17 @@ namespace Avalanche.Tests.Runner
                 }
             };
 
-            _sut = new AvalancheRunner(_logger, _glacier, _lightroom, _avalanche, _parameters);
+            _glacierFactory = Substitute.For<IInjectionFactory<IGlacierGateway>>();
+            _glacierFactory.Create().Returns(_glacier);
+
+            _lightroomFactory = Substitute.For<IInjectionFactory<ILightroomReader>>();
+            _lightroomFactory.Create().Returns(_lightroom);
+            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
+
+            _avalancheFactory = Substitute.For<IInjectionFactory<IAvalancheRepository>>();
+            _avalancheFactory.Create().Returns(_avalanche);
+
+            _sut = new AvalancheRunner(_logger, _glacierFactory, _lightroomFactory, _avalancheFactory, _parameters);
         }
 
         [Fact]
@@ -63,23 +80,26 @@ namespace Avalanche.Tests.Runner
             await _glacier.ReceivedWithAnyArgs(1).AssertVaultExists(Arg.Any<string>());
         }
 
+        private IEnumerable<PictureModel> GetPictures(int count, Func<int, int> libraryCountFunc = null)
+        {
+            return Enumerable
+                    .Range(0, count)
+                    .Select(a => new PictureModel
+                    {
+                        AbsolutePath = $"/dev/null/image{a}.jpg",
+                        FileName = $"{a}.jpg",
+                        FileId = Guid.NewGuid(),
+                        ImageId = Guid.NewGuid(),
+                        LibraryCount = libraryCountFunc != null ? libraryCountFunc(a) : 1
+                    });
+        } 
+
         [Fact]
         public async Task Archiving_GivenPicturesAndExisting_GroupsByFile()
         {
-            var pictures = Enumerable
-                            .Range(0, 10)
-                            .Select(a => new PictureModel
-                                    {
-                                        AbsolutePath = $"/dev/null/image{a}.jpg",
-                                        FileName = $"{a}.jpg",
-                                        FileId = Guid.NewGuid(),
-                                        ImageId = Guid.NewGuid(),
-                                        LibraryCount = 1
-                                    })
-                            .ToList();
+            var pictures = GetPictures(10).ToList();
             pictures.AddRange(pictures);
 
-            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
             _lightroom.GetAllPictures().Returns(pictures);
             _avalanche.FileIsArchived(Arg.Any<Guid>()).Returns(false);
 
@@ -98,19 +118,9 @@ namespace Avalanche.Tests.Runner
         [Fact]
         public async Task Archiving_GivenPicturesAndExisting_FiltersOnLibraryCount()
         {
-            var pictures = Enumerable
-                            .Range(0, 10)
-                            .Select(a => new PictureModel
-                                    {
-                                        AbsolutePath = $"/dev/null/image{a}.jpg",
-                                        FileName = $"{a}.jpg",
-                                        FileId = Guid.NewGuid(),
-                                        ImageId = Guid.NewGuid(),
-                                        LibraryCount = a / 5 // First five = 0, next five = 1
-                                    })
-                            .ToList();
+            // First five = 0, next five = 1
+            var pictures = GetPictures(10, a => a / 5).ToList();
 
-            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
             _lightroom.GetAllPictures().Returns(pictures);
             _avalanche.FileIsArchived(Arg.Any<Guid>()).Returns(false);
 
@@ -129,19 +139,8 @@ namespace Avalanche.Tests.Runner
         [Fact]
         public async Task Archiving_GivenPicturesAndExisting_FiltersOnExistingArchive()
         {
-            var pictures = Enumerable
-                            .Range(0, 10)
-                            .Select(a => new PictureModel
-                                    {
-                                        AbsolutePath = $"/dev/null/image{a}.jpg",
-                                        FileName = $"{a}.jpg",
-                                        FileId = Guid.NewGuid(),
-                                        ImageId = Guid.NewGuid(),
-                                        LibraryCount = 1
-                                    })
-                            .ToList();
+            var pictures = GetPictures(10).ToList();
 
-            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
             _lightroom.GetAllPictures().Returns(pictures);
 
             var existingArchivedFileIds = pictures
@@ -166,19 +165,8 @@ namespace Avalanche.Tests.Runner
         [Fact]
         public async Task Archiving_GivenTransportFailures_TriesThreeTimes()
         {
-            var pictures = new []
-            {
-                new PictureModel
-                {
-                    AbsolutePath = $"/dev/null/0.jpg",
-                    FileName = $"0.jpg",
-                    FileId = Guid.NewGuid(),
-                    ImageId = Guid.NewGuid(),
-                    LibraryCount = 1
-                }
-            };
+            var pictures = GetPictures(1).ToList();
 
-            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
             _lightroom.GetAllPictures().Returns(pictures);
             _avalanche.FileIsArchived(Arg.Any<Guid>()).ReturnsForAnyArgs(false);
 
@@ -195,19 +183,8 @@ namespace Avalanche.Tests.Runner
         [Fact]
         public async Task Archiving_GivenTransportFailures_GivesUpAfterThreeFailures()
         {
-            var pictures = new []
-            {
-                new PictureModel
-                {
-                    AbsolutePath = $"/dev/null/0.jpg",
-                    FileName = $"0.jpg",
-                    FileId = Guid.NewGuid(),
-                    ImageId = Guid.NewGuid(),
-                    LibraryCount = 1
-                }
-            };
+            var pictures = GetPictures(1).ToList();
 
-            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
             _lightroom.GetAllPictures().Returns(pictures);
             _avalanche.FileIsArchived(Arg.Any<Guid>()).ReturnsForAnyArgs(false);
 
@@ -219,6 +196,96 @@ namespace Avalanche.Tests.Runner
             _avalanche.DidNotReceive()
                       .MarkFileAsArchived(Arg.Any<ArchivedPictureModel>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
             Assert.Equal(1, result.Failures.Count);       
+        }
+
+        private const int MaximumDegreeOfParallelism = 3;
+
+        [Fact]
+        public async Task Archiving_GivenQueue_ExecutesExactlynThreeTasksInParallel()
+        {
+            var pictures = GetPictures(10);
+
+            _lightroom.GetAllPictures().Returns(pictures);
+
+            _avalanche.FileIsArchived(Arg.Any<Guid>()).ReturnsForAnyArgs(false);            
+
+            var processingFileIds = new HashSet<Guid>();
+            var maxDegreeOfParallelismReached = 0;
+
+            // Here we back up inbound parallelism until the max is
+            // reached, then wait a little longer to make sure that
+            // no extra prallel runs occur
+            var maxFilesAreProcessingTask = Task.Run(async () =>
+            {
+                // This will block once until the maximum count is reached,
+                // then the Task's completion will allow further rounds to
+                // proceed immediately
+                while(processingFileIds.Count < MaximumDegreeOfParallelism)
+                {
+                    await Task.Delay(10);
+                }
+                await Task.Delay(30);
+            });
+
+            _glacier.SaveImage(Arg.Any<PictureModel>(), Arg.Any<string>())
+                    .Returns(async a =>
+                    {
+                        var fileId = a.Arg<PictureModel>().FileId;
+                        processingFileIds.Add(fileId);
+
+                        if(processingFileIds.Count > maxDegreeOfParallelismReached)
+                        {
+                            maxDegreeOfParallelismReached = processingFileIds.Count;
+                        }
+
+                        await maxFilesAreProcessingTask;
+                        
+                        processingFileIds.Remove(fileId);
+                        return new ArchivedPictureModel
+                        {
+                            Archive = new ArchiveModel
+                            {
+                            },
+                            Picture = new PictureModel
+                            {                                
+                            }
+                        };
+                    });
+
+            await _sut.Run();
+
+            Assert.Equal(MaximumDegreeOfParallelism, maxDegreeOfParallelismReached);
+        }
+
+        [Fact]
+        public async Task Archiving_GivenOneInQueue_AwaitsCompletion()
+        {
+            var pictures = GetPictures(1);
+
+            _lightroom.GetAllPictures().Returns(pictures);
+
+            _avalanche.FileIsArchived(Arg.Any<Guid>()).ReturnsForAnyArgs(false);            
+
+            var taskCompleted = false;
+            _glacier.SaveImage(Arg.Any<PictureModel>(), Arg.Any<string>())
+                    .Returns(async a =>
+                    {
+                        await Task.Delay(30);
+                        taskCompleted = true;
+
+                        return new ArchivedPictureModel
+                        {
+                            Archive = new ArchiveModel
+                            {
+                            },
+                            Picture = new PictureModel
+                            {                                
+                            }
+                        };
+                    });
+
+            await _sut.Run();
+            Assert.True(taskCompleted);
         }
 
         private static ArchivedPictureModel SaveImageFails(CallInfo callInfo)
