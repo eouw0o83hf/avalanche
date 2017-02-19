@@ -234,6 +234,118 @@ namespace Avalanche.Tests.Runner
             Assert.Equal(1, result.Failures.Count);       
         }
 
+        private const int MaximumDegreeOfParallelism = 3;
+
+        [Fact]
+        public async Task Archiving_GivenQueue_ExecutesExactlynThreeTasksInParallel()
+        {
+            var pictures = Enumerable
+                            .Range(0, 10)
+                            .Select(a => new PictureModel
+                                    {
+                                        AbsolutePath = $"/dev/null/image{a}.jpg",
+                                        FileName = $"{a}.jpg",
+                                        FileId = Guid.NewGuid(),
+                                        ImageId = Guid.NewGuid(),
+                                        LibraryCount = 1
+                                    })
+                            .ToList();
+
+            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
+            _lightroom.GetAllPictures().Returns(pictures);
+
+            _avalanche.FileIsArchived(Arg.Any<Guid>()).ReturnsForAnyArgs(false);            
+
+            var processingFileIds = new HashSet<Guid>();
+            var maxDegreeOfParallelismReached = 0;
+
+            // Here we back up inbound parallelism until the max is
+            // reached, then wait a little longer to make sure that
+            // no extra prallel runs occur
+            var maxFilesAreProcessingTask = Task.Run(async () =>
+            {
+                // This will block once until the maximum count is reached,
+                // then the Task's completion will allow further rounds to
+                // proceed immediately
+                while(processingFileIds.Count < MaximumDegreeOfParallelism)
+                {
+                    await Task.Delay(10);
+                }
+                await Task.Delay(30);
+            });
+
+            _glacier.SaveImage(Arg.Any<PictureModel>(), Arg.Any<string>())
+                    .Returns(async a =>
+                    {
+                        var fileId = a.Arg<PictureModel>().FileId;
+                        processingFileIds.Add(fileId);
+
+                        if(processingFileIds.Count > maxDegreeOfParallelismReached)
+                        {
+                            maxDegreeOfParallelismReached = processingFileIds.Count;
+                        }
+
+                        await maxFilesAreProcessingTask;
+                        
+                        processingFileIds.Remove(fileId);
+                        return new ArchivedPictureModel
+                        {
+                            Archive = new ArchiveModel
+                            {
+                            },
+                            Picture = new PictureModel
+                            {                                
+                            }
+                        };
+                    });
+
+            await _sut.Run();
+
+            Assert.Equal(MaximumDegreeOfParallelism, maxDegreeOfParallelismReached);
+        }
+
+        [Fact]
+        public async Task Archiving_GivenOneInQueue_AwaitsCompletion()
+        {
+            var pictures = new [] 
+            {
+                new PictureModel
+                {
+                    AbsolutePath = $"/dev/null/image.jpg",
+                    FileName = $"file.jpg",
+                    FileId = Guid.NewGuid(),
+                    ImageId = Guid.NewGuid(),
+                    LibraryCount = 1
+                }
+            };
+
+            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
+            _lightroom.GetAllPictures().Returns(pictures);
+
+            _avalanche.FileIsArchived(Arg.Any<Guid>()).ReturnsForAnyArgs(false);            
+
+            var taskCompleted = false;
+            _glacier.SaveImage(Arg.Any<PictureModel>(), Arg.Any<string>())
+                    .Returns(async a =>
+                    {
+                        await Task.Delay(30);
+                        taskCompleted = true;
+
+                        return new ArchivedPictureModel
+                        {
+                            Archive = new ArchiveModel
+                            {
+                            },
+                            Picture = new PictureModel
+                            {                                
+                            }
+                        };
+                    });
+
+            await _sut.Run();
+            Assert.True(taskCompleted);
+        }
+
         private static ArchivedPictureModel SaveImageFails(CallInfo callInfo)
         {
             throw new Exception();
