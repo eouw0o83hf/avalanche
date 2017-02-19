@@ -14,6 +14,9 @@ using NSubstitute.Core;
 
 namespace Avalanche.Tests.Runner
 {
+    // There's a decent bit of overlap in each of the test cases in this class, but
+    // they're all just different enough with varying degrees of overlay that it's
+    // a lot more readable to just have some code duplication.
     public class AvalancheRunnerTests
     {
         private readonly ILogger<AvalancheRunner> _logger;
@@ -49,6 +52,7 @@ namespace Avalanche.Tests.Runner
 
             _lightroomFactory = Substitute.For<IInjectionFactory<ILightroomReader>>();
             _lightroomFactory.Create().Returns(_lightroom);
+            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
 
             _avalancheFactory = Substitute.For<IInjectionFactory<IAvalancheRepository>>();
             _avalancheFactory.Create().Returns(_avalanche);
@@ -76,23 +80,26 @@ namespace Avalanche.Tests.Runner
             await _glacier.ReceivedWithAnyArgs(1).AssertVaultExists(Arg.Any<string>());
         }
 
+        private IEnumerable<PictureModel> GetPictures(int count, Func<int, int> libraryCountFunc = null)
+        {
+            return Enumerable
+                    .Range(0, count)
+                    .Select(a => new PictureModel
+                    {
+                        AbsolutePath = $"/dev/null/image{a}.jpg",
+                        FileName = $"{a}.jpg",
+                        FileId = Guid.NewGuid(),
+                        ImageId = Guid.NewGuid(),
+                        LibraryCount = libraryCountFunc != null ? libraryCountFunc(a) : 1
+                    });
+        } 
+
         [Fact]
         public async Task Archiving_GivenPicturesAndExisting_GroupsByFile()
         {
-            var pictures = Enumerable
-                            .Range(0, 10)
-                            .Select(a => new PictureModel
-                                    {
-                                        AbsolutePath = $"/dev/null/image{a}.jpg",
-                                        FileName = $"{a}.jpg",
-                                        FileId = Guid.NewGuid(),
-                                        ImageId = Guid.NewGuid(),
-                                        LibraryCount = 1
-                                    })
-                            .ToList();
+            var pictures = GetPictures(10).ToList();
             pictures.AddRange(pictures);
 
-            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
             _lightroom.GetAllPictures().Returns(pictures);
             _avalanche.FileIsArchived(Arg.Any<Guid>()).Returns(false);
 
@@ -111,19 +118,9 @@ namespace Avalanche.Tests.Runner
         [Fact]
         public async Task Archiving_GivenPicturesAndExisting_FiltersOnLibraryCount()
         {
-            var pictures = Enumerable
-                            .Range(0, 10)
-                            .Select(a => new PictureModel
-                                    {
-                                        AbsolutePath = $"/dev/null/image{a}.jpg",
-                                        FileName = $"{a}.jpg",
-                                        FileId = Guid.NewGuid(),
-                                        ImageId = Guid.NewGuid(),
-                                        LibraryCount = a / 5 // First five = 0, next five = 1
-                                    })
-                            .ToList();
+            // First five = 0, next five = 1
+            var pictures = GetPictures(10, a => a / 5).ToList();
 
-            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
             _lightroom.GetAllPictures().Returns(pictures);
             _avalanche.FileIsArchived(Arg.Any<Guid>()).Returns(false);
 
@@ -142,19 +139,8 @@ namespace Avalanche.Tests.Runner
         [Fact]
         public async Task Archiving_GivenPicturesAndExisting_FiltersOnExistingArchive()
         {
-            var pictures = Enumerable
-                            .Range(0, 10)
-                            .Select(a => new PictureModel
-                                    {
-                                        AbsolutePath = $"/dev/null/image{a}.jpg",
-                                        FileName = $"{a}.jpg",
-                                        FileId = Guid.NewGuid(),
-                                        ImageId = Guid.NewGuid(),
-                                        LibraryCount = 1
-                                    })
-                            .ToList();
+            var pictures = GetPictures(10).ToList();
 
-            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
             _lightroom.GetAllPictures().Returns(pictures);
 
             var existingArchivedFileIds = pictures
@@ -179,19 +165,8 @@ namespace Avalanche.Tests.Runner
         [Fact]
         public async Task Archiving_GivenTransportFailures_TriesThreeTimes()
         {
-            var pictures = new []
-            {
-                new PictureModel
-                {
-                    AbsolutePath = $"/dev/null/0.jpg",
-                    FileName = $"0.jpg",
-                    FileId = Guid.NewGuid(),
-                    ImageId = Guid.NewGuid(),
-                    LibraryCount = 1
-                }
-            };
+            var pictures = GetPictures(1).ToList();
 
-            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
             _lightroom.GetAllPictures().Returns(pictures);
             _avalanche.FileIsArchived(Arg.Any<Guid>()).ReturnsForAnyArgs(false);
 
@@ -208,19 +183,8 @@ namespace Avalanche.Tests.Runner
         [Fact]
         public async Task Archiving_GivenTransportFailures_GivesUpAfterThreeFailures()
         {
-            var pictures = new []
-            {
-                new PictureModel
-                {
-                    AbsolutePath = $"/dev/null/0.jpg",
-                    FileName = $"0.jpg",
-                    FileId = Guid.NewGuid(),
-                    ImageId = Guid.NewGuid(),
-                    LibraryCount = 1
-                }
-            };
+            var pictures = GetPictures(1).ToList();
 
-            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
             _lightroom.GetAllPictures().Returns(pictures);
             _avalanche.FileIsArchived(Arg.Any<Guid>()).ReturnsForAnyArgs(false);
 
@@ -239,19 +203,8 @@ namespace Avalanche.Tests.Runner
         [Fact]
         public async Task Archiving_GivenQueue_ExecutesExactlynThreeTasksInParallel()
         {
-            var pictures = Enumerable
-                            .Range(0, 10)
-                            .Select(a => new PictureModel
-                                    {
-                                        AbsolutePath = $"/dev/null/image{a}.jpg",
-                                        FileName = $"{a}.jpg",
-                                        FileId = Guid.NewGuid(),
-                                        ImageId = Guid.NewGuid(),
-                                        LibraryCount = 1
-                                    })
-                            .ToList();
+            var pictures = GetPictures(10);
 
-            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
             _lightroom.GetAllPictures().Returns(pictures);
 
             _avalanche.FileIsArchived(Arg.Any<Guid>()).ReturnsForAnyArgs(false);            
@@ -307,19 +260,8 @@ namespace Avalanche.Tests.Runner
         [Fact]
         public async Task Archiving_GivenOneInQueue_AwaitsCompletion()
         {
-            var pictures = new [] 
-            {
-                new PictureModel
-                {
-                    AbsolutePath = $"/dev/null/image.jpg",
-                    FileName = $"file.jpg",
-                    FileId = Guid.NewGuid(),
-                    ImageId = Guid.NewGuid(),
-                    LibraryCount = 1
-                }
-            };
+            var pictures = GetPictures(1);
 
-            _lightroom.GetCatalogId().Returns(Guid.NewGuid());
             _lightroom.GetAllPictures().Returns(pictures);
 
             _avalanche.FileIsArchived(Arg.Any<Guid>()).ReturnsForAnyArgs(false);            
